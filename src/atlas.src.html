@@ -1,0 +1,661 @@
+<title>Atlas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400&display=swap">
+<!--XLSX-->
+<style>
+/*CORE_CSS*/
+/* Atlas: bond universe -> macro stance -> portfolio. Red = what you picked (the portfolio, the chosen bond); ink = the market today;
+   steel/gold/rust ramp = credit quality from AAA to CCC; the negative colour marks losses in scenarios. */
+.app{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.ctl{display:flex;flex-direction:column;gap:5px;min-width:0}
+select{border:1px solid var(--line);background:var(--card);min-height:34px;padding:0 8px;max-width:100%}
+input[type=number]{width:84px;text-align:right;font-variant-numeric:tabular-nums}
+.drop{border:1px dashed var(--mute);padding:14px 16px;display:flex;gap:10px 18px;align-items:center;flex-wrap:wrap;margin-top:14px;background:var(--card)}
+.drop.over{border-color:var(--red);background:var(--sel)}
+.drop b{font-weight:500}
+.drop .s{color:var(--mute);font-size:12.5px;line-height:1.5;flex:1 1 320px;min-width:0}
+.chk{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:var(--mute)}
+.map{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px 18px;margin-top:12px}
+.map label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mute);min-width:0}
+.map label i{font-style:normal;font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.map label.req>span::after{content:" *";color:var(--red)}
+.map select{width:100%}
+.imp{font-size:12.5px;color:var(--mute);margin-top:8px;line-height:1.5}
+.imp b{color:var(--ink);font-weight:500}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chipb{border:1px solid var(--line);background:var(--card);min-height:30px;padding:0 10px;font-size:12.5px;color:var(--mute);font-variant-numeric:tabular-nums}
+.chipb.on{border-color:var(--ink);color:var(--ink);font-weight:500}
+.ind{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border-top:1px solid var(--rule)}
+.ind div{padding:10px 12px 12px 0;display:flex;flex-direction:column;gap:2px;min-width:0;border-bottom:1px solid var(--line)}
+.ind .v{font-size:20px;font-weight:300;font-variant-numeric:tabular-nums}
+.ind .s{font-size:12px;color:var(--mute);line-height:1.35}
+.stance{display:flex;flex-direction:column;gap:12px}
+.st{display:grid;grid-template-columns:8.5em minmax(0,1fr);gap:4px 12px;align-items:start}
+.st .n{font-size:12px;color:var(--mute);padding-top:7px}
+.st .why{grid-column:2;font-size:12px;color:var(--mute);line-height:1.4}
+.st .why b{color:var(--ink);font-weight:500}
+.seg button.auto{box-shadow:inset 0 -2px 0 var(--red)}
+.cwrap{min-width:0}
+.stat{font-size:12.5px;line-height:1.55;color:var(--mute);margin-top:8px;max-width:80ch}
+.stat b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+.flt{display:flex;gap:10px 18px;flex-wrap:wrap;align-items:flex-end;padding-block:4px 12px}
+.flt input[type=text]{width:180px}
+.cv{position:relative}
+canvas{display:block;width:100%;touch-action:none}
+.tbl{font-size:12.5px}
+.tbl td,.tbl th{padding:6px 6px}
+.tbl td .nm{display:block;font-size:11px;color:var(--mute);max-width:28ch;overflow:hidden;text-overflow:ellipsis}
+.tbl td.is{max-width:30ch;white-space:normal;line-height:1.3}
+.tbl th.sort{cursor:pointer}
+.tbl tbody tr{cursor:pointer}
+.tbl tbody tr:hover td{background:var(--sel)}
+.tbl tr.hl td{background:var(--tint)}
+.tbl tr.inp td:first-child{box-shadow:inset 2px 0 0 var(--red)}
+.add{border:1px solid var(--line);background:var(--card);min-height:26px;min-width:28px;color:var(--mute);font-size:15px;line-height:1}
+.add.on{border-color:var(--red);color:var(--red)}
+.pg{display:flex;gap:10px;align-items:center;font-size:12.5px;color:var(--mute);margin-top:8px;flex-wrap:wrap}
+.rb{display:inline-block;width:8px;height:8px;margin-right:5px;vertical-align:1px}
+.cz{font-variant-numeric:tabular-nums}
+.cz.ch{color:var(--pos)} .cz.ri{color:var(--neg)}
+.bset{display:flex;gap:10px 18px;flex-wrap:wrap;align-items:flex-end;padding-block:12px;border-bottom:1px solid var(--line)}
+.bset .amt{width:150px;text-align:right}
+.pf td input{width:58px}
+.lk{border:0;background:none;color:var(--mute);font-size:13px;padding:0 4px}
+.lk.on{color:var(--red)}
+.checks{display:flex;flex-direction:column;gap:4px;font-size:12.5px;margin-top:10px}
+.checks span.ok{color:var(--pos)} .checks span.no{color:var(--neg)}
+.mix{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px 26px}
+.mx{display:grid;grid-template-columns:minmax(0,7em) minmax(0,1fr) 3.4em;gap:4px 8px;align-items:center;font-size:12px}
+.mx .n{color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mx .t{height:8px;background:var(--track);position:relative}
+.mx .t i{position:absolute;left:0;top:0;bottom:0;background:var(--red)}
+.mx .v{text-align:right;font-variant-numeric:tabular-nums}
+.sc td input{width:72px}
+.sc td,.sc th{padding:6px 4px}
+.sc td.r{font-weight:500}
+.sc td.r.dn{color:var(--neg)} .sc td.r.up{color:var(--pos)}
+.empty{color:var(--mute);font-size:13px;padding:18px 0}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand"><h1>Atlas</h1><span data-ja="債券ユニバースからポートフォリオを構築：マクロ環境に基づく方針、割安・割高、円ベースの期待リターン、自動構築、シナリオ分析">Build bond portfolios from your universe: a stance from the macro backdrop, rich and cheap bonds, expected return in yen, an automatic builder and scenarios</span></div>
+    <div class="tright">
+      <span class="pill busy" id="status"><i></i></span>
+      <button class="btn q" id="refresh" data-ja="マクロ更新">Refresh macro</button>
+      <button class="btn q" id="themeBtn">Dark</button>
+      <div class="seg" id="langSeg"><button data-l="en">EN</button><button data-l="ja">日本語</button></div>
+    </div>
+  </header>
+  <div class="banner" id="banner" hidden></div>
+  <div class="help" id="how" hidden></div>
+
+  <div class="drop" id="drop">
+    <button class="btn p" id="pick" data-ja="ユニバースを読み込む（Excel / CSV）">Load universe (Excel / CSV)</button>
+    <input type="file" id="file" accept=".xlsx,.xls,.xlsm,.csv" hidden>
+    <span class="s" id="dropTxt"></span>
+    <label class="chk"><input type="checkbox" id="keep"> <span data-ja="このパソコンに保存">Keep on this computer</span></label>
+    <button class="btn q" id="demo" data-ja="サンプル（架空の債券）">Example (made-up bonds)</button>
+  </div>
+  <div id="mapWrap" hidden>
+    <div class="sh" style="margin-top:16px"><h2 data-ja="列の対応">Match your columns</h2><p data-ja="自動で推定しました。違う場合は選び直して「適用」を押してください。* は必須。">Guessed from your headers. Fix any that are wrong, then Apply. * = required.</p></div>
+    <div class="map" id="map"></div>
+    <div class="grp" style="margin-top:12px"><button class="btn p" id="applyMap" data-ja="適用">Apply</button><span class="imp" id="mapNote"></span></div>
+  </div>
+  <div class="imp" id="impNote"></div>
+
+  <section class="sec">
+    <div class="sh"><h2 data-ja="マクロ環境と債券の方針">Macro backdrop and bond stance</h2><p id="macSub"></p></div>
+    <div class="two even">
+      <div class="cwrap"><div class="ind" id="ind"></div></div>
+      <div class="cwrap"><div class="stance" id="stance"></div>
+        <div class="grp" style="margin-top:12px"><button class="btn" id="applyStance" data-ja="方針をビルダーに反映">Apply stance to the builder</button><button class="btn q" id="autoStance" data-ja="自動判定に戻す">Back to automatic</button></div></div>
+    </div>
+  </section>
+
+  <div id="uniBody" hidden>
+  <section class="sec">
+    <div class="sh"><h2 data-ja="ユニバース">Universe</h2><p id="uniSub"></p></div>
+    <div class="flt" id="flt">
+      <div class="ctl"><span class="lbl" data-ja="通貨">Currency</span><div class="chips" id="fCcy"></div></div>
+      <div class="ctl"><span class="lbl" data-ja="格付（以上）">Rating, at least</span><select id="fMinR"></select></div>
+      <div class="ctl"><span class="lbl" data-ja="格付（以下）">Rating, at most</span><select id="fMaxR"></select></div>
+      <div class="ctl"><span class="lbl" data-ja="残存年数">Years to maturity</span><div class="grp"><input type="number" id="fMat0" step="0.5" min="0"><span>–</span><input type="number" id="fMat1" step="0.5" min="0"></div></div>
+      <div class="ctl"><span class="lbl" data-ja="セクター">Sector</span><select id="fSec"></select></div>
+      <div class="ctl"><span class="lbl" data-ja="弁済順位">Seniority</span><select id="fRank"></select></div>
+      <div class="ctl"><span class="lbl" data-ja="クーポン">Coupon</span><select id="fCt"></select></div>
+      <div class="ctl"><span class="lbl" data-ja="コール">Calls</span><select id="fCall"></select></div>
+      <div class="ctl"><span class="lbl" data-ja="最低購入額以下（債券通貨）">Min piece at most</span><input type="number" id="fPiece" step="1000" min="0" style="width:110px"></div>
+      <div class="ctl"><span class="lbl" data-ja="検索（発行体・ISIN）">Search issuer or ISIN</span><input type="text" id="fQ"></div>
+      <div class="ctl"><span class="lbl">&nbsp;</span><label class="chk"><input type="checkbox" id="fCheap"> <span data-ja="割安のみ（1σ以上）">Cheap only (≥1σ)</span></label></div>
+      <div class="ctl"><span class="lbl">&nbsp;</span><button class="btn q" id="fReset" data-ja="条件をクリア">Clear filters</button></div>
+    </div>
+    <div class="two">
+      <div class="cwrap">
+        <div class="bar" style="border:0;padding-top:0"><div class="ctl"><span class="lbl" data-ja="縦軸">Vertical axis</span><div class="seg" id="yaxSeg"><button data-v="yld" data-ja="利回り">Yield</button><button data-v="spr" data-ja="スプレッド">Spread</button><button data-v="er" data-ja="期待リターン（基準通貨）">Expected return (base)</button></div></div></div>
+        <div class="cv"><canvas id="sc" height="380"></canvas></div>
+        <div class="leg" id="scLeg"></div>
+      </div>
+      <div class="cwrap">
+        <div class="sh"><h2 style="font-size:15px" id="selH" data-ja="債券の詳細">Bond detail</h2><p data-ja="点または表の行をクリックすると表示されます。">Click a dot or a table row.</p></div>
+        <div id="detail" class="stat"></div>
+      </div>
+    </div>
+    <div class="tw" style="margin-top:14px"><table class="tbl" id="tbl"></table></div>
+    <div class="pg" id="pg"></div>
+  </section>
+
+  <section class="sec">
+    <div class="sh"><h2 data-ja="ポートフォリオ・ビルダー">Portfolio builder</h2><p data-ja="ロックした債券は残し、残りを条件と方針に沿って自動で選びます。表の＋で手動追加もできます。">Keeps the bonds you lock, then fills the rest to your limits and the stance. Use + in the table to add bonds by hand.</p></div>
+    <div class="bset" id="bset">
+      <div class="ctl"><span class="lbl" data-ja="基準通貨">Base currency</span><select id="bBase"></select></div>
+      <div class="ctl"><span class="lbl" id="bSizeL"></span><input type="text" id="bSize" class="amt" inputmode="numeric"></div>
+      <div class="ctl"><span class="lbl" data-ja="銘柄数">Bonds</span><input type="number" id="bN" min="2" max="80" step="1"></div>
+      <div class="ctl"><span class="lbl" data-ja="目標デュレーション ±">Target duration ±</span><div class="grp"><input type="number" id="bDur" step="0.5" min="0"><input type="number" id="bTol" step="0.25" min="0.25"></div></div>
+      <div class="ctl"><span class="lbl" data-ja="最低格付">Lowest rating</span><select id="bMinR"></select></div>
+      <div class="ctl"><span class="lbl" data-ja="HY上限 %">High yield max %</span><input type="number" id="bHy" step="5" min="0" max="100"></div>
+      <div class="ctl"><span class="lbl" data-ja="1セクター上限 %">Per sector max %</span><input type="number" id="bSec" step="5" min="5" max="100"></div>
+      <div class="ctl"><span class="lbl" data-ja="1通貨上限 %">Per currency max %</span><input type="number" id="bCcyCap" step="5" min="5" max="100"></div>
+      <div class="ctl"><span class="lbl" data-ja="最長年数">Longest maturity, years</span><input type="number" id="bMaxM" step="1" min="1"></div>
+      <div class="ctl"><span class="lbl" data-ja="最低発行残高（百万）">Min size outstanding, m</span><input type="number" id="bAmt" step="100" min="0"></div>
+      <div class="ctl"><span class="lbl" data-ja="選ぶ基準">Rank by</span><div class="seg" id="bObj"><button data-v="er" data-ja="期待リターン">Expected return</button><button data-v="yld" data-ja="利回り">Yield</button><button data-v="erd" data-ja="リターン÷デュレーション">Return per duration</button></div></div>
+      <div class="ctl"><span class="lbl" data-ja="割安度の重み">Weight on cheapness</span><div class="seg" id="bCheap"><button data-v="0" data-ja="なし">None</button><button data-v="0.1" data-ja="少し">Some</button><button data-v="0.25" data-ja="多め">More</button></div></div>
+      <div class="ctl"><span class="lbl" data-ja="為替の前提（12か月）">FX over 12 months</span><div class="seg" id="bFx"><button data-v="spot" data-ja="変化なし">Unchanged</button><button data-v="fwd" data-ja="フォワード通り">As the forward</button><button data-v="view" data-ja="自分の見通し">My views</button></div></div>
+      <div class="ctl" style="justify-content:flex-end"><label class="chk"><input type="checkbox" id="bOne"> <span data-ja="1発行体1銘柄">One bond per issuer</span></label><label class="chk"><input type="checkbox" id="bPerp"> <span data-ja="永久債を含む">Allow perpetuals</span></label><label class="chk"><input type="checkbox" id="bCall"> <span data-ja="コール付きを含む">Allow callables</span></label></div>
+    </div>
+    <div class="bset" id="fxViews" hidden></div>
+    <div class="grp" style="padding-block:12px"><button class="btn p" id="build" data-ja="構築する">Build portfolio</button><button class="btn q" id="equal" data-ja="均等ウェイト">Equal weights</button><button class="btn q" id="clearPf" data-ja="ロック以外を外す">Clear unlocked</button><button class="btn q" id="export" data-ja="Excelに出力">Export to Excel</button><span class="imp" id="buildNote"></span></div>
+    <div id="pfBody">
+      <section class="kpis" id="pfK" style="border-top:1px solid var(--line)"></section>
+      <div class="two" style="margin-top:18px">
+        <div class="cwrap"><div class="tw"><table class="tbl pf" id="pf"></table></div><div class="checks" id="checks"></div></div>
+        <div class="cwrap">
+          <div class="sh"><h2 style="font-size:15px" data-ja="キャッシュフロー（年ごと、基準通貨）">Cash flows by year, base currency</h2><p data-ja="クーポンと償還額。現在の為替レートで換算。">Coupons and redemptions, at today’s exchange rates.</p></div>
+          <svg class="ch" id="cf" height="230"></svg><div class="leg" id="cfLeg"></div>
+          <div class="mix" id="mix" style="margin-top:18px"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sh"><h2 data-ja="シナリオ（12か月）">Scenarios over 12 months</h2><p data-ja="金利・スプレッド・為替の変化を入力できます。過去の局面は目安としての概算値です。">Every number is editable. The crisis rows are rough versions of past moves, not exact history.</p></div>
+    <div class="tw"><table class="tbl sc" id="sc2"></table></div>
+    <div class="stat" id="scNote"></div>
+  </section>
+  </div>
+  <div class="empty" id="noUni"></div>
+
+  <p class="note" id="method"></p>
+</div>
+
+<script>
+const SAMPLE=/*SAMPLE*/;
+/*CORE_JS*/
+
+/* ===== reference data ===== */
+const SP=['AAA','AA+','AA','AA-','A+','A','A-','BBB+','BBB','BBB-','BB+','BB','BB-','B+','B','B-','CCC+','CCC','CCC-','CC','C','D'];
+const MD=['Aaa','Aa1','Aa2','Aa3','A1','A2','A3','Baa1','Baa2','Baa3','Ba1','Ba2','Ba3','B1','B2','B3','Caa1','Caa2','Caa3','Ca','C'];
+const BUCKETS=[['AAA',1,1],['AA',2,4],['A',5,7],['BBB',8,10],['BB',11,13],['B',14,16],['CCC',17,22]];
+const bucketOf=n=>n==null?'NR':BUCKETS.find(b=>n>=b[1]&&n<=b[2])[0];
+const BCOL={AAA:'--a1',AA:'--a5',A:'--a7',BBB:'--a4',BB:'--gold',B:'--a6',CCC:'--red',NR:'--mute'};
+function parseRating(s){if(s==null)return null;let x=String(s).trim().replace(/\(P\)|\*[+-]?|\bu\b|\s+(NEG|POS|STABLE|WD)$/ig,'').trim();if(!x||/^(NR|WR|N\.?A\.?|#N\/A.*|-|--)$/i.test(x))return null;
+  let i=MD.indexOf(x);if(i>=0)return i+1;const u=x.toUpperCase().replace(/\s/g,'');if(u==='SD'||u==='RD')return 22;i=SP.indexOf(u);if(i>=0)return i+1;
+  const m=x.match(/^(Aaa|Aa[1-3]|A[1-3]|Baa[1-3]|Ba[1-3]|B[1-3]|Caa[1-3]|Ca|C)\b/);if(m)return MD.indexOf(m[1])+1;const n=u.match(/^(AAA|AA[+-]?|A[+-]?|BBB[+-]?|BB[+-]?|B[+-]?|CCC[+-]?|CC|C|D)/);return n?SP.indexOf(n[1])+1:null}
+const rName=n=>n==null?'NR':SP[n-1];
+/* column synonyms, normalised (lower case, letters and digits only) */
+const FIELDS=[
+  {k:'isin',en:'ISIN',ja:'ISIN',syn:['isin','isincode','idisin','securityid','id']},
+  {k:'name',en:'Issuer / name',ja:'発行体・銘柄名',req:1,syn:['issuer','issuername','name','securityname','security','description','securitydes','shortname','longcompname','companyname','issuershortname']},
+  {k:'ccy',en:'Currency',ja:'通貨',req:1,syn:['currency','ccy','crncy','curr','cur','issuecurrency','denomination currency']},
+  {k:'cpn',en:'Coupon',ja:'クーポン',syn:['coupon','cpn','couponrate','cpnrate','couponpct']},
+  {k:'mat',en:'Maturity',ja:'満期',req:1,syn:['maturity','maturitydate','mtydate','mty','matdate','finalmaturity','maturityday']},
+  {k:'rcomp',en:'Rating (composite)',ja:'格付（総合）',syn:['rating','bbgcomposite','compositerating','bbcomposite','rtgbbcomp','ratingcomposite','avgrating','averagerating','rtg']},
+  {k:'rsp',en:'Rating S&P',ja:'格付 S&P',syn:['sp','sprating','rtgsp','standardpoors','sandp','snp','spr','sprtg']},
+  {k:'rmd',en:'Rating Moody’s',ja:'格付 ムーディーズ',syn:['moodys','moody','rtgmoody','moodysrating','mdy']},
+  {k:'rft',en:'Rating Fitch',ja:'格付 フィッチ',syn:['fitch','rtgfitch','fitchrating']},
+  {k:'price',en:'Price',ja:'価格',syn:['price','pxmid','pxask','askprice','midprice','px','pxlast','bidprice','cleanprice','askpx','midpx','pricemid','priceask']},
+  {k:'yld',en:'Yield (to worst / maturity)',ja:'利回り',req:1,syn:['yield','ytw','ytm','yieldtoworst','yldytw','askyldtoworst','yldtoworst','yieldtomaturity','yasbondyld','askyield','midyield','yldytm','ytwmid','yldytwmid','yldytwask','yieldworst','yld']},
+  {k:'spr',en:'Spread (bp)',ja:'スプレッド (bp)',syn:['spread','oas','zspread','zsprd','gspread','ispread','oasspread','oasspreadmid','asw','assetswapspread','yasoasprd','zsprdmid','spreadtobenchmark','blendedspread','oasmid','sprd','bmkspread']},
+  {k:'dur',en:'Duration (modified)',ja:'デュレーション（修正）',syn:['duration','moddur','modifiedduration','durmid','duradj','duradjmid','oasdur','effdur','effectiveduration','modduration','durationmid','dur','yasmoddur','durmodmid']},
+  {k:'sector',en:'Sector',ja:'セクター',syn:['sector','industry','industrysector','bicssector','gicssector','bicslevel1','industrygroup','bicslevel1sectorname','sectorname']},
+  {k:'country',en:'Country',ja:'国',syn:['country','countryofrisk','cntryofrisk','cntryofdomicile','domicile','issuercountry','riskcountry','countryiso']},
+  {k:'rank',en:'Seniority',ja:'弁済順位',syn:['seniority','paymentrank','rank','capitalstructure','debtrank','collateraltype','senioritylevel','rankingtype']},
+  {k:'call',en:'Callable / maturity type',ja:'コール条項',syn:['callable','calltype','mattype','mtytyp','mtytype','maturitytyp','maturitytype','callflag','iscallable','callfeature','redemptiontype']},
+  {k:'ncall',en:'Next call date',ja:'次回コール日',syn:['nextcalldate','nxtcalldt','firstcalldate','calldate','nextcall','nxtcall','workoutdate','worstdate']},
+  {k:'ctype',en:'Coupon type',ja:'クーポン種類',syn:['coupontype','cpntyp','ratetype','fixedfloat','floater','couponfrequencytype','cpntype','coupon type']},
+  {k:'piece',en:'Minimum piece',ja:'最低購入額',syn:['minpiece','mindenomination','minimumdenomination','mininc','minincrement','minimumpiece','denomination','mintradesize','minpiecesize','minimumtradesize','minpcincrement']},
+  {k:'amt',en:'Amount outstanding',ja:'発行残高',syn:['amountoutstanding','amtout','outstanding','issuesize','amtissued','amountissued','size','faceoutstanding','amtoutstanding','outstandingamount']},
+];
+const norm=s=>String(s==null?'':s).toLowerCase().replace(/[^a-z0-9]/g,'');
+const CCY_SYM={JPY:'¥',USD:'$',EUR:'€',GBP:'£'};
+const BASES=['JPY','USD','EUR','GBP','AUD'];
+
+/* ===== state ===== */
+let S={yax:'yld',page:0,sort:'yld',dir:-1,f:{ccy:[],minR:1,maxR:22,mat0:'',mat1:'',sec:'',rank:'',ct:'',call:'',piece:'',q:'',cheap:false},
+  b:{base:'JPY',size:500000000,n:20,dur:5,tol:1.5,minR:10,hy:10,sec:25,ccyCap:70,maxM:30,amt:0,obj:'er',cheap:0.1,fx:'spot',fxv:{},one:true,perp:false,call:true},
+  pf:[],stOv:{},keep:false,scen:null};
+try{const s=JSON.parse(localStorage.getItem('atlas-state')||'{}');if(s.b)Object.assign(S.b,s.b);if(s.f)Object.assign(S.f,s.f);['yax','stOv','pf','keep','scen','sort','dir'].forEach(k=>{if(s[k]!=null)S[k]=s[k]})}catch(e){}
+const save=()=>{try{localStorage.setItem('atlas-state',JSON.stringify({b:S.b,f:S.f,yax:S.yax,stOv:S.stOv,pf:S.pf,keep:S.keep,scen:S.scen,sort:S.sort,dir:S.dir}))}catch(e){}};
+let U=null; /* {bonds, name, from, at} */
+let MAC=null,MAC_LIVE=false,RATES=null,FXU=null;
+let RAW=null; /* parsed sheet awaiting mapping */
+let SEL=null; /* selected bond id */
+
+/* ===== parsing ===== */
+const isNum=v=>typeof v==='number'&&isFinite(v);
+function toNum(v){if(isNum(v))return v;if(v==null)return null;const s=String(v).replace(/[,%\s]/g,'').replace(/^\((.*)\)$/,'-$1');if(!s||/^(#N\/A|N\.?A\.?|NA|-|--|nan)/i.test(s))return null;const n=+s;return isFinite(n)?n:null}
+function toDate(v){if(v instanceof Date&&!isNaN(v))return Date.UTC(v.getFullYear(),v.getMonth(),v.getDate());if(isNum(v)&&v>20000&&v<80000)return Math.round((v-25569)*864e5);if(v==null)return null;const s=String(v).trim();if(!s)return null;
+  let m=s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);if(m)return Date.UTC(+m[1],m[2]-1,+m[3]);
+  m=s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/);if(m){let a=+m[1],b=+m[2],y=+m[3];if(y<100)y+=2000;if(a>12)return Date.UTC(y,b-1,a);return Date.UTC(y,a-1,b)}
+  const t=Date.parse(s);return isNaN(t)?null:t}
+const isPerpTxt=v=>/perp/i.test(String(v||''));
+function guessMap(headers){const used=new Set(),map={};const hn=headers.map(norm);
+  FIELDS.forEach(f=>{let j=-1;for(const s of f.syn.map(norm)){j=hn.findIndex((h,i)=>!used.has(i)&&h===s);if(j>=0)break}
+    if(j<0)for(const s of f.syn.map(norm)){if(s.length<4)continue;j=hn.findIndex((h,i)=>!used.has(i)&&h.includes(s));if(j>=0)break}
+    if(j>=0){used.add(j);map[f.k]=j}});return map}
+function freqOf(c){return c==='EUR'||c==='CHF'?1:2}
+function priceFromYield(c,y,yrs,f){const n=Math.max(1,Math.round(yrs*f)),cp=c/f,r=y/100/f;let p=0;for(let i=1;i<=n;i++)p+=cp/Math.pow(1+r,i);return p+100/Math.pow(1+r,n)}
+function ytm(c,p,yrs,f){let lo=-5,hi=40;for(let i=0;i<80;i++){const m=(lo+hi)/2;if(priceFromYield(c,m,yrs,f)>p)lo=m;else hi=m}return(lo+hi)/2}
+function modDur(c,y,yrs,f){const n=Math.max(1,Math.round(yrs*f)),cp=c/f,r=y/100/f;let pv=0,t=0;for(let i=1;i<=n;i++){const cf=cp+(i===n?100:0),d=cf/Math.pow(1+r,i);pv+=d;t+=d*i/f}return pv>0?t/pv/(1+r):yrs}
+function buildBonds(rows,map,now){
+  const g=(r,k)=>map[k]!=null?r[map[k]]:null;const out=[];const st={rows:rows.length,noYld:0,noCcy:0,yFromPx:0,durEst:0,noRating:0,perp:0};
+  rows.forEach((r,i)=>{
+    const ccy=String(g(r,'ccy')||'').trim().toUpperCase().slice(0,3);if(!/^[A-Z]{3}$/.test(ccy)){st.noCcy++;return}
+    const matRaw=g(r,'mat'),perp=isPerpTxt(matRaw)||isPerpTxt(g(r,'call'));let mat=perp?null:toDate(matRaw);
+    const ncall=toDate(g(r,'ncall'));const cpn=toNum(g(r,'cpn'))??0;let price=toNum(g(r,'price'));
+    const ctxt=String(g(r,'ctype')||'');const flt=/float|frn|variable|var/i.test(ctxt);
+    const workout=mat||ncall;const yrs=workout?(workout-now)/(365.25*864e5):(perp?10:null);
+    if(!perp&&(mat==null||yrs<=0.02))return;
+    let yld=toNum(g(r,'yld'));if(yld==null&&price!=null&&yrs>0){yld=ytm(cpn,price,yrs,freqOf(ccy));st.yFromPx++}
+    if(yld==null||!isFinite(yld)||yld<-5||yld>60){st.noYld++;return}
+    let dur=toNum(g(r,'dur'));const callTxt=String(g(r,'call')||'');const callable=perp||(/call|perp/i.test(callTxt)&&!/^(n|no|bullet|at maturity)$/i.test(callTxt.trim()))||(callTxt.trim().toUpperCase()==='Y')||(ncall!=null&&mat!=null&&ncall<mat);
+    if(dur==null||dur<0||dur>60){dur=flt?0.25:modDur(cpn,yld,Math.max(0.05,yrs),freqOf(ccy));st.durEst++}
+    let rn=parseRating(g(r,'rcomp'));if(rn==null){const c=[g(r,'rsp'),g(r,'rft'),g(r,'rmd')].map(parseRating).filter(x=>x!=null);if(c.length)rn=c.sort((a,b)=>a-b)[Math.floor((c.length-1)/2)]}
+    if(rn==null)st.noRating++;if(perp)st.perp++;
+    const bk=bucketOf(rn),mYrs=mat?(mat-now)/(365.25*864e5):null;
+    out.push({id:out.length,isin:String(g(r,'isin')||'').trim(),name:String(g(r,'name')||g(r,'isin')||'—').trim(),ccy,cpn,mat,perp,ncall,yrs:mYrs,wy:yrs,price:price??(isFinite(yld)&&yrs>0?priceFromYield(cpn,yld,yrs,freqOf(ccy)):100),yld,spr:toNum(g(r,'spr')),dur,flt,callable,
+      rn,bk,ig:rn!=null&&rn<=10,sector:String(g(r,'sector')||'').trim()||'—',country:String(g(r,'country')||'').trim(),rank:String(g(r,'rank')||'').trim()||'—',piece:toNum(g(r,'piece')),amt:toNum(g(r,'amt'))});
+  });
+  return{bonds:out,st};
+}
+
+/* ===== analytics per bond ===== */
+function solve3(A,b){const M=A.map((r,i)=>[...r,b[i]]);for(let c=0;c<3;c++){let p=c;for(let r=c+1;r<3;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;[M[c],M[p]]=[M[p],M[c]];if(Math.abs(M[c][c])<1e-12)return null;for(let r=0;r<3;r++){if(r===c)continue;const f=M[r][c]/M[c][c];for(let k=c;k<4;k++)M[r][k]-=f*M[c][k]}}return M.map((r,i)=>r[3]/r[i])}
+function fit(pts){/* y = a + b ln(1+x) + c x, one pass then without 3-sigma outliers */
+  const run=P=>{const A=[[0,0,0],[0,0,0],[0,0,0]],v=[0,0,0];P.forEach(([x,y])=>{const f=[1,Math.log(1+x),x];for(let i=0;i<3;i++){v[i]+=f[i]*y;for(let j=0;j<3;j++)A[i][j]+=f[i]*f[j]}});return solve3(A,v)};
+  let c=run(pts);if(!c)return null;const F=x=>c[0]+c[1]*Math.log(1+x)+c[2]*x;let res=pts.map(([x,y])=>y-F(x)),sd=Math.sqrt(res.reduce((s,r)=>s+r*r,0)/Math.max(1,res.length-3));
+  const keep=pts.filter((p,i)=>Math.abs(res[i])<=3*sd);if(keep.length>=8&&keep.length<pts.length){const c2=run(keep);if(c2){c=c2;res=keep.map(([x,y])=>y-(c[0]+c[1]*Math.log(1+x)+c[2]*x));sd=Math.sqrt(res.reduce((s,r)=>s+r*r,0)/Math.max(1,res.length-3))}}
+  return{f:x=>c[0]+c[1]*Math.log(1+x)+c[2]*x,sd};
+}
+let FITS={};
+function analyseUniverse(){
+  const groups={};U.bonds.forEach(b=>{if(b.flt||b.wy==null)return;const k=b.ccy+'|'+b.bk;(groups[k]=groups[k]||[]).push(b)});
+  FITS={};for(const[k,arr]of Object.entries(groups)){if(arr.length<15)continue;const F=fit(arr.map(b=>[Math.min(40,b.wy),b.yld]));if(F&&F.sd>0)FITS[k]=F}
+  U.bonds.forEach(b=>{const F=FITS[b.ccy+'|'+b.bk];if(!F||b.flt||b.wy==null){b.rc=null;b.z=null;b.roll=0;return}const x=Math.min(40,b.wy),fv=F.f(x);b.rc=(b.yld-fv)*100;b.z=(b.yld-fv)/F.sd;
+    b.roll=x>1?Math.max(-1.5,Math.min(1.5,(fv-F.f(x-1))*Math.max(0,b.dur-1))):0});
+}
+function shortRate(c){if(RATES&&RATES[c]!=null)return+RATES[c];return null}
+function fxView(c){const B=S.b.base;if(c===B)return 0;if(S.b.fx==='fwd'){const a=shortRate(B),b=shortRate(c);return a!=null&&b!=null?a-b:0}if(S.b.fx==='view')return+(S.b.fxv[c]||0);return 0}
+function erOf(b){const loc=b.yld+(b.roll||0);return((1+loc/100)*(1+fxView(b.ccy)/100)-1)*100}
+function units(c){return FXU&&FXU[c]?FXU[c]:null} /* units per USD */
+function conv(a,from,to){if(from===to)return a;const f=units(from),t=units(to);return f&&t?a*t/f:null}
+
+/* ===== macro and stance ===== */
+const last=a=>a&&a.length?a[a.length-1]:null;
+function ago(a,months){if(!a||!a.length)return null;const L=last(a),t=Date.parse(L.d)-months*30.5*864e5;let best=null;for(const p of a)if(Date.parse(p.d)<=t)best=p;return best}
+function indicators(){
+  const M=MAC||SAMPLE.macro,h=M.h||{},I={};
+  const ch=(a,m)=>{const L=last(a),P=ago(a,m);return L&&P?L.v-P.v:null};
+  I.gUS=ch(M.cli&&M.cli.US,6);I.gJP=ch(M.cli&&M.cli.JP,6);I.iUS=ch(M.cpi&&M.cpi.US,6);I.cpiUS=last(M.cpi&&M.cpi.US);I.cliUS=last(M.cli&&M.cli.US);
+  I.p2=ch(h.UST2Y,6);I.u2=last(h.UST2Y);I.u10=last(h.UST10Y);I.j2=last(h.JGB2Y);I.j10=last(h.JGB10Y);I.curve=I.u10&&I.u2?(I.u10.v-I.u2.v)*100:null;I.jcurve=I.j10&&I.j2?(I.j10.v-I.j2.v)*100:null;
+  I.vix=last(h['^VIX']);const hy=h.HYG,ie=h.IEF;if(hy&&ie&&hy.length&&ie.length){const r=a=>a.v,L1=last(hy),L2=last(ie),P1=ago(hy,6),P2=ago(ie,6);I.credit=P1&&P2?((L1.v/L2.v)/(P1.v/P2.v)-1)*100:null}
+  return I;
+}
+function autoStance(I){
+  const up=v=>v!=null&&v>0.1,dn=v=>v!=null&&v<-0.1,iUp=I.iUS!=null&&I.iUS>0.3,iDn=I.iUS!=null&&I.iUS<-0.3,tight=I.p2!=null&&I.p2>0.25,ease=I.p2!=null&&I.p2<-0.25;
+  const vix=I.vix?I.vix.v:null,st={},why={};
+  if(iUp&&tight){st.dur='short';why.dur=T(`inflation up ${num(I.iUS,1)} pts and the US 2-year up ${bp(I.p2)} in six months`,`インフレ率が6か月で${num(I.iUS,1)}pt上昇、米2年債利回りが${bp(I.p2)}上昇`)}
+  else if((dn(I.gUS)&&!iUp)||ease){st.dur='long';why.dur=ease?T(`the US 2-year down ${bp(I.p2)} in six months: easing priced in`,`米2年債利回りが6か月で${bp(I.p2)}低下（利下げを織り込み）`):T('growth slowing without inflation pressure','インフレ圧力のない景気減速')}
+  else{st.dur='neutral';why.dur=T('no clear signal from inflation and policy rates','インフレと政策金利から明確なシグナルなし')}
+  if(tight){st.curve='front';why.curve=T(`policy still tightening; the curve is ${I.curve!=null?num(I.curve,0)+'bp':'—'} from 2 to 10 years`,`引き締め継続。2年–10年の傾き ${I.curve!=null?num(I.curve,0)+'bp':'—'}`)}
+  else if(ease){st.curve='belly';why.curve=T('easing tends to steepen the curve from the front: the 3–7 year area gains most','利下げ局面ではカーブが前から立ちやすく、3〜7年ゾーンが有利')}
+  else{st.curve='ladder';why.curve=T('no strong curve view: spread across maturities','カーブの見方は中立：満期を分散')}
+  const stress=(vix!=null&&vix>25)||(I.credit!=null&&I.credit<-2)||dn(I.gUS),calm=vix!=null&&vix<16&&up(I.gUS)&&(I.credit==null||I.credit>=0);
+  if(stress){st.credit='up';why.credit=T(`${vix!=null&&vix>25?`VIX at ${num(vix,1)}`:I.credit!=null&&I.credit<-2?`high yield lagging Treasuries by ${num(-I.credit,1)}% in six months`:'growth slowing'}: favour quality`,`${vix!=null&&vix>25?`VIX ${num(vix,1)}`:I.credit!=null&&I.credit<-2?`ハイイールドが国債を6か月で${num(-I.credit,1)}%下回る`:'景気減速'}：高格付を優先`)}
+  else if(calm){st.credit='risk';why.credit=T(`VIX ${num(vix,1)}, growth rising, credit holding up: room to add yield`,`VIX ${num(vix,1)}、景気上向き、クレジット堅調：利回りを取りに行く余地`)}
+  else{st.credit='neutral';why.credit=T(`VIX ${vix!=null?num(vix,1):'—'}, high yield ${I.credit!=null?pct(I.credit,1):'—'} against Treasuries over six months: no strong signal`,`VIX ${vix!=null?num(vix,1):'—'}、ハイイールドの対国債6か月 ${I.credit!=null?pct(I.credit,1):'—'}：明確なシグナルなし`)}
+  if(st.dur==='long'){st.call='avoid';why.call=T('if rates fall, callables get called away just when you want to keep them','金利が下がると、保有したい時にコールされやすい')}else{st.call='allow';why.call=T('rates are not expected to fall much: call risk is limited','大幅な金利低下は想定されず、コールのリスクは限定的')}
+  if(iUp&&tight){st.flt='prefer';why.flt=T('rising inflation and policy rates lift floating coupons','インフレと政策金利の上昇で変動利付のクーポンが上昇')}else{st.flt='neutral';why.flt=T('no particular reason to prefer floaters','変動利付を特に選ぶ理由なし')}
+  return{st,why};
+}
+const SOPT={dur:[['short','Short','短め'],['neutral','Neutral','中立'],['long','Long','長め']],curve:[['front','Front end','短期ゾーン'],['belly','Belly','中期ゾーン'],['long','Long end','長期ゾーン'],['ladder','Ladder','分散']],credit:[['up','Up in quality','高格付へ'],['neutral','Neutral','中立'],['risk','Add risk','リスクを取る']],call:[['avoid','Avoid','避ける'],['allow','Allow','許容']],flt:[['prefer','Prefer','選好'],['neutral','Neutral','中立']]};
+const SNAME={dur:['Duration','デュレーション'],curve:['Curve','カーブ'],credit:['Credit','クレジット'],call:['Callables','コール債'],flt:['Floaters','変動利付']};
+let AUTO=null;
+function stance(){const s={...AUTO.st};for(const k in S.stOv)if(S.stOv[k])s[k]=S.stOv[k];return s}
+function stanceDefaults(s){const d={};
+  Object.assign(d,{short:{dur:3,tol:1},neutral:{dur:5,tol:1.5},long:{dur:8,tol:1.5}}[s.dur]);
+  Object.assign(d,{up:{minR:7,hy:0},neutral:{minR:13,hy:10},risk:{minR:15,hy:30}}[s.credit]);
+  d.call=s.call!=='avoid';d.maxM={front:7,belly:12,long:30,ladder:20}[s.curve];return d}
+const curveBand=c=>({front:[0,4],belly:[3,8],long:[8,40],ladder:null}[c]);
+
+/* ===== formatting ===== */
+const fy=v=>v==null||!isFinite(v)?'—':v.toFixed(2)+'%';
+const f1=v=>v==null||!isFinite(v)?'—':num(v,1);
+function money(v,c){if(v==null||!isFinite(v))return'—';if(v<0)return'−'+money(-v,c);if(c==='JPY'){if(JA())return v>=1e8?num(v/1e8,2)+'億円':num(v,0)+'円';return v>=1e9?'¥'+num(v/1e9,2)+'bn':v>=1e6?'¥'+num(v/1e6,1)+'m':'¥'+num(v,0)}const s=CCY_SYM[c]||'';const a=Math.abs(v)>=1e6?num(v/1e6,2)+'m':num(v,0);return s?s+a:a+' '+c}
+const fdt=t=>t?new Date(t).toISOString().slice(0,10):'—';
+const ccol=b=>cssv(BCOL[b]||'--mute');
+const C=()=>({red:cssv('--red'),ink:cssv('--ink'),steel:cssv('--steel'),gold:cssv('--gold'),mute:cssv('--mute'),neg:cssv('--neg'),pos:cssv('--pos'),bg:cssv('--bg')});
+
+/* ===== filtering ===== */
+let FIL=[];
+function applyFilters(){const f=S.f,q=f.q.trim().toLowerCase(),m0=f.mat0===''?null:+f.mat0,m1=f.mat1===''?null:+f.mat1,pc=f.piece===''?null:+f.piece;
+  FIL=U.bonds.filter(b=>{if(f.ccy.length&&!f.ccy.includes(b.ccy))return false;if(b.rn!=null&&(b.rn<f.minR||b.rn>f.maxR))return false;if(b.rn==null&&(f.minR>1||f.maxR<22))return false;
+    const y=b.yrs;if(m0!=null&&(y==null||y<m0))return false;if(m1!=null&&(y==null||y>m1))return false;if(f.sec&&b.sector!==f.sec)return false;if(f.rank&&b.rank!==f.rank)return false;
+    if(f.ct==='fixed'&&b.flt)return false;if(f.ct==='float'&&!b.flt)return false;if(f.call==='no'&&b.callable)return false;if(f.call==='only'&&!b.callable)return false;
+    if(pc!=null&&b.piece!=null&&b.piece>pc)return false;if(f.cheap&&!(b.z!=null&&b.z>=1))return false;if(q&&!(b.name.toLowerCase().includes(q)||b.isin.toLowerCase().includes(q)))return false;return true})}
+
+/* ===== rendering ===== */
+function render(){
+  setLang(LANG);
+  AUTO=autoStance(indicators());
+  macro();
+  $('#dropTxt').innerHTML=U?T(`<b>${esc(U.name)}</b> · ${num(U.bonds.length,0)} bonds${U.from==='example'?' · <b>made-up example bonds</b>, not real securities':''}. The file is read in this browser; nothing is uploaded.`,`<b>${esc(U.name)}</b>・${num(U.bonds.length,0)}銘柄${U.from==='example'?'・<b>架空のサンプル債券</b>（実在の銘柄ではありません）':''}。ファイルはこのブラウザ内で読み込まれ、どこにも送信されません。`):T('Drop your bond universe here, or load it. Excel or CSV, one bond per row. The file is read in this browser; nothing is uploaded.','債券ユニバースをここにドロップするか、読み込んでください（Excel/CSV、1行1銘柄）。ファイルはこのブラウザ内で読み込まれ、どこにも送信されません。');
+  $('#keep').checked=!!S.keep;
+  if(!U){$('#uniBody').hidden=true;$('#noUni').hidden=false;$('#noUni').textContent=T('Load your universe, or try the example to see how it works.','ユニバースを読み込むか、サンプルで動作を確認してください。');method();return}
+  $('#uniBody').hidden=false;$('#noUni').hidden=true;
+  applyFilters();filters();scatter();table();detail();builderUI();portfolio();scenarios();method();
+}
+function macro(){
+  const I=indicators(),M=MAC||SAMPLE.macro;
+  const it=(l,v,s)=>`<div><span class="lbl">${l}</span><span class="v">${v}</span><span class="s">${s}</span></div>`;
+  const arrow=(v,t)=>v==null?'—':v>t?T('rising','上昇'):v<-t?T('falling','低下'):T('flat','横ばい');
+  $('#ind').innerHTML=[
+    it(T('US growth (OECD leading indicator)','米国の景気（OECD先行指数）'),I.cliUS?num(I.cliUS.v,1):'—',`${arrow(I.gUS,0.1)} · 6M ${I.gUS!=null?(I.gUS>0?'+':'')+num(I.gUS,2):'—'}`),
+    it(T('US inflation (CPI, y/y)','米国のインフレ率（CPI前年比）'),I.cpiUS?num(I.cpiUS.v,1)+'%':'—',`${arrow(I.iUS,0.3)} · 6M ${I.iUS!=null?(I.iUS>0?'+':'')+num(I.iUS,1)+T(' pts','pt'):'—'}`),
+    it(T('US 2-year yield','米2年債利回り'),I.u2?num(I.u2.v,2)+'%':'—',`6M ${I.p2!=null?bp(I.p2):'—'}`),
+    it(T('US curve, 2s10s','米国カーブ 2年–10年'),I.curve!=null?num(I.curve,0)+'bp':'—',I.u10?T(`10-year ${num(I.u10.v,2)}%`,`10年 ${num(I.u10.v,2)}%`):''),
+    it(T('JGB curve, 2s10s','日本国債カーブ 2年–10年'),I.jcurve!=null?num(I.jcurve,0)+'bp':'—',I.j10?T(`10-year ${num(I.j10.v,2)}%`,`10年 ${num(I.j10.v,2)}%`):''),
+    it('VIX',I.vix?num(I.vix.v,1):'—',I.vix?(I.vix.v>25?T('stressed','ストレス'):I.vix.v<16?T('calm','落ち着き'):T('normal','通常')):''),
+    it(T('High yield vs Treasuries, 6M','ハイイールド対国債（6か月）'),I.credit!=null?pct(I.credit,1):'—',T('HYG against IEF','HYG対IEF')),
+    it(T('Japan growth (OECD)','日本の景気（OECD）'),I.gJP!=null?arrow(I.gJP,0.1):'—',`6M ${I.gJP!=null?(I.gJP>0?'+':'')+num(I.gJP,2):'—'}`),
+  ].join('');
+  const asof=I.cliUS?I.cliUS.d:null;
+  $('#macSub').textContent=MAC_LIVE?T(`Live from Keel. Leading indicator and CPI to ${fdate(asof,{month:'short',year:'numeric'})}; market data to last month-end close.`,`Keelのライブデータ。先行指数とCPIは${fdate(asof,{month:'short',year:'numeric'})}まで、市場データは直近の月末値。`):T(`Snapshot from ${fdate(SAMPLE.asof)} (Keel is not reachable from here). The stance still works: change any setting by hand.`,`${fdate(SAMPLE.asof)}時点のスナップショット（Keelに接続できません）。方針は手動で変更できます。`);
+  const s=stance();
+  $('#stance').innerHTML=Object.keys(SOPT).map(k=>`<div class="st"><span class="n">${JA()?SNAME[k][1]:SNAME[k][0]}</span><div class="seg" data-k="${k}">${SOPT[k].map(([v,en,ja])=>`<button data-v="${v}" class="${s[k]===v?'on':''} ${AUTO.st[k]===v?'auto':''}">${JA()?ja:en}</button>`).join('')}</div><span class="why">${S.stOv[k]&&S.stOv[k]!==AUTO.st[k]?T('<b>Your choice.</b> Automatic: ','<b>手動で選択。</b>自動判定：')+esc(JA()?SOPT[k].find(o=>o[0]===AUTO.st[k])[2]:SOPT[k].find(o=>o[0]===AUTO.st[k])[1])+'. ':''}${T('Because ','理由：')}${AUTO.why[k]}</span></div>`).join('')+`<span class="small" style="font-size:11.5px;color:var(--mute)">${T('Red underline: the automatic reading.','赤い下線：自動判定。')}</span>`;
+  $$('#stance .seg button').forEach(b=>b.onclick=()=>{const k=b.parentElement.dataset.k;S.stOv[k]=b.dataset.v===AUTO.st[k]?undefined:b.dataset.v;save();render()});
+}
+function filters(){
+  const f=S.f,cnt={};U.bonds.forEach(b=>cnt[b.ccy]=(cnt[b.ccy]||0)+1);const ccys=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);
+  $('#fCcy').innerHTML=ccys.slice(0,12).map(c=>`<button class="chipb ${f.ccy.includes(c)?'on':''}" data-c="${c}">${c} <span style="opacity:.6">${num(cnt[c],0)}</span></button>`).join('');
+  $$('#fCcy button').forEach(b=>b.onclick=()=>{const c=b.dataset.c;f.ccy=f.ccy.includes(c)?f.ccy.filter(x=>x!==c):[...f.ccy,c];S.page=0;save();render()});
+  const ro=SP.slice(0,19).map((r,i)=>`<option value="${i+1}">${r}</option>`).join('');
+  if(!$('#fMinR').options.length){$('#fMinR').innerHTML=ro;$('#fMaxR').innerHTML=ro+`<option value="22">D</option>`}
+  $('#fMinR').value=f.minR;$('#fMaxR').value=f.maxR;
+  const opts=(arr,all)=>`<option value="">${all}</option>`+arr.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  const secs=[...new Set(U.bonds.map(b=>b.sector))].sort(),ranks=[...new Set(U.bonds.map(b=>b.rank))].sort();
+  $('#fSec').innerHTML=opts(secs,T('All sectors','すべて'));$('#fSec').value=f.sec;$('#fRank').innerHTML=opts(ranks,T('All','すべて'));$('#fRank').value=f.rank;
+  $('#fCt').innerHTML=`<option value="">${T('All','すべて')}</option><option value="fixed">${T('Fixed','固定')}</option><option value="float">${T('Floating','変動')}</option>`;$('#fCt').value=f.ct;
+  $('#fCall').innerHTML=`<option value="">${T('All','すべて')}</option><option value="no">${T('No callables','コール債を除く')}</option><option value="only">${T('Callables only','コール債のみ')}</option>`;$('#fCall').value=f.call;
+  ['mat0','mat1','piece','q'].forEach(k=>{const el=$('#f'+k[0].toUpperCase()+k.slice(1));if(el&&document.activeElement!==el)el.value=f[k]});$('#fCheap').checked=f.cheap;
+  const ys=FIL.map(b=>b.yld).sort((a,b)=>a-b),med=ys.length?ys[Math.floor(ys.length/2)]:null;
+  $('#uniSub').innerHTML=T(`<b style="color:var(--ink);font-weight:500">${num(FIL.length,0)}</b> of ${num(U.bonds.length,0)} bonds match · median yield ${fy(med)} · rich/cheap measured against a curve fitted to each currency and rating band.`,`${num(U.bonds.length,0)}銘柄中<b style="color:var(--ink);font-weight:500">${num(FIL.length,0)}</b>銘柄が該当・利回り中央値 ${fy(med)}・割安/割高は通貨×格付帯ごとに当てはめたカーブとの比較。`);
+}
+let SC=null;
+function scatter(){
+  const cv=$('#sc'),dpr=window.devicePixelRatio||1,w=Math.max(260,cv.clientWidth||600),h=380;cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  const m={l:48,r:12,t:10,b:30},yk=S.yax,val=b=>yk==='yld'?b.yld:yk==='spr'?b.spr:erOf(b);
+  const pts=FIL.filter(b=>val(b)!=null&&isFinite(val(b))&&b.dur!=null);
+  const ys=pts.map(val).sort((a,b)=>a-b),q=p=>ys.length?ys[Math.min(ys.length-1,Math.floor(p*ys.length))]:0;
+  const ylo=Math.min(0,q(0.005)),yhi=q(0.995)*1.05||1,xhi=Math.max(1,...pts.map(b=>Math.min(30,b.dur)));
+  const yt=niceTicks(ylo,yhi,5),xt=niceTicks(0,xhi,6),Y0=yt[0],Y1=yt[yt.length-1],X1=xt[xt.length-1];
+  const X=x=>m.l+Math.min(x,X1)/X1*(w-m.l-m.r),Y=v=>m.t+(1-(Math.max(Y0,Math.min(Y1,v))-Y0)/(Y1-Y0))*(h-m.t-m.b);
+  g.font='11px '+cssv('--font');g.strokeStyle=cssv('--line');g.fillStyle=cssv('--mute');g.lineWidth=1;g.textAlign='right';
+  yt.forEach(v=>{g.beginPath();g.moveTo(m.l,Y(v));g.lineTo(w-m.r,Y(v));g.stroke();g.fillText(yk==='spr'?num(v,0):v.toFixed(1)+'%',m.l-6,Y(v)+4)});
+  g.textAlign='center';xt.forEach(v=>g.fillText(String(v),X(v),h-12));g.fillText(T('modified duration →','修正デュレーション →'),(m.l+w-m.r)/2,h-1);
+  const inP=new Set(S.pf.map(p=>p.k));const order=['NR','AAA','AA','A','BBB','BB','B','CCC'];
+  let off=0;const inR=b=>{const v=val(b);if(v<Y0||v>Y1||b.dur>X1){off++;return false}return true};const vis=pts.filter(inR);
+  order.forEach(bk=>{g.fillStyle=ccol(bk);g.globalAlpha=vis.length>8000?.35:vis.length>2000?.5:.7;vis.forEach(b=>{if(b.bk!==bk)return;g.beginPath();g.arc(X(b.dur),Y(val(b)),vis.length>8000?1.4:2.1,0,6.283);g.fill()})});
+  g.globalAlpha=1;g.strokeStyle=cssv('--red');g.lineWidth=1.6;pts.forEach(b=>{if(!inP.has(key(b)))return;g.beginPath();g.arc(X(b.dur),Y(val(b)),4.5,0,6.283);g.stroke()});
+  const sb=SEL!=null?U.bonds[SEL]:null;if(sb&&val(sb)!=null){g.fillStyle=cssv('--red');g.beginPath();g.arc(X(sb.dur),Y(val(sb)),5.5,0,6.283);g.fill();g.strokeStyle=cssv('--bg');g.lineWidth=1.5;g.stroke()}
+  SC={pts:vis,X,Y,val,w,h};
+  const present=order.filter(bk=>pts.some(b=>b.bk===bk));
+  legend($('#scLeg'),present.map(bk=>({name:bk,color:ccol(bk)})).concat([{name:T('In portfolio','ポートフォリオ'),color:cssv('--red')}]));if(off)$('#scLeg').insertAdjacentHTML('beforeend',`<span>${T(`${num(off,0)} off the scale`,`範囲外 ${num(off,0)}銘柄`)}</span>`);
+}
+function nearest(ev){if(!SC)return null;const cv=$('#sc'),r=cv.getBoundingClientRect(),x=(ev.clientX-r.left)/r.width*SC.w,y=(ev.clientY-r.top)/r.height*SC.h;let best=null,bd=144;for(const b of SC.pts){const dx=SC.X(b.dur)-x,dy=SC.Y(SC.val(b))-y,d=dx*dx+dy*dy;if(d<bd){bd=d;best=b}}return best}
+$('#sc').addEventListener('mousemove',ev=>{const b=nearest(ev);if(!b){tip(null);return}tip(`<div><b>${esc(b.name)}</b></div><div class="m">${esc(b.ccy)} · ${rName(b.rn)} · ${b.perp?T('perpetual','永久債'):fdt(b.mat)}</div><div>${T('Yield','利回り')} <b>${fy(b.yld)}</b> · ${T('dur','デュレ')} <b>${f1(b.dur)}</b>${b.z!=null?` · ${b.z>=0?T('cheap','割安'):T('rich','割高')} <b>${num(Math.abs(b.rc),0)}bp</b>`:''}</div>`,ev)});
+$('#sc').addEventListener('mouseleave',()=>tip(null));
+$('#sc').addEventListener('click',ev=>{const b=nearest(ev);if(b){SEL=b.id;render()}});
+const key=b=>b.isin||(b.name+'|'+b.ccy+'|'+b.mat);
+const COLS=[['name','Issuer','発行体'],['ccy','Ccy','通貨'],['cpn','Coupon','クーポン'],['mat','Maturity','満期'],['rn','Rating','格付'],['yld','Yield','利回り'],['spr','Spread','スプレッド'],['dur','Dur','デュレ'],['sector','Sector','セクター'],['rc','Cheap / rich','割安/割高'],['er','Exp. return','期待リターン']];
+function table(){
+  const k=S.sort,d=S.dir,gv=b=>k==='er'?erOf(b):k==='mat'?(b.mat||9e15):b[k];
+  const rows=FIL.slice().sort((a,b)=>{const x=gv(a),y=gv(b);if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return(typeof x==='string'?x.localeCompare(y):x-y)*d});
+  const per=25,pages=Math.max(1,Math.ceil(rows.length/per));S.page=Math.min(S.page,pages-1);const view=rows.slice(S.page*per,S.page*per+per);if(SEL==null&&view.length)SEL=view[0].id;const inP=new Set(S.pf.map(p=>p.k));
+  let h=`<thead><tr>${COLS.map(([c,en,ja])=>`<th class="sort ${S.sort===c?'on':''}" data-c="${c}">${JA()?ja:en}${S.sort===c?(d>0?' ↑':' ↓'):''}</th>`).join('')}<th></th></tr></thead><tbody>`;
+  view.forEach(b=>{const ip=inP.has(key(b));h+=`<tr class="${b.id===SEL?'hl':''} ${ip?'inp':''}" data-i="${b.id}"><td class="is">${esc(b.name)}<span class="nm">${esc(b.isin)}${b.rank&&b.rank!=='—'?' · '+esc(b.rank):''}</span></td><td>${esc(b.ccy)}</td><td>${b.flt?T('float','変動'):num(b.cpn,3)}</td><td>${b.perp?T('perp','永久'):fdt(b.mat)}${b.callable&&!b.perp?' <span class="nm">'+T('callable','コール付')+'</span>':''}</td><td><span class="rb" style="background:${ccol(b.bk)}"></span>${rName(b.rn)}</td><td>${fy(b.yld)}</td><td>${b.spr!=null?num(b.spr,0):'—'}</td><td>${f1(b.dur)}</td><td style="max-width:16ch;overflow:hidden;text-overflow:ellipsis">${esc(b.sector)}</td><td class="cz ${b.z!=null&&b.z>=1?'ch':b.z!=null&&b.z<=-1?'ri':''}">${b.rc!=null?(b.rc>=0?'+':'−')+num(Math.abs(b.rc),0)+'bp':'—'}${b.z!=null?` <span class="nm" style="display:inline">${b.z>=0?'+':'−'}${Math.abs(b.z).toFixed(1)}σ</span>`:''}</td><td>${fy(erOf(b))}</td><td><button class="add ${ip?'on':''}" data-a="${b.id}" title="${ip?T('Remove from portfolio','ポートフォリオから外す'):T('Add to portfolio','ポートフォリオに追加')}">${ip?'−':'+'}</button></td></tr>`});
+  $('#tbl').innerHTML=h+'</tbody>';
+  $$('#tbl th.sort').forEach(th=>th.onclick=()=>{const c=th.dataset.c;if(S.sort===c)S.dir=-S.dir;else{S.sort=c;S.dir=['name','ccy','sector','mat','rn'].includes(c)?1:-1}save();render()});
+  $$('#tbl tbody tr').forEach(tr=>tr.onclick=e=>{if(e.target.closest('.add'))return;SEL=+tr.dataset.i;render()});
+  $$('#tbl .add').forEach(bt=>bt.onclick=()=>{const b=U.bonds[+bt.dataset.a],k2=key(b);if(S.pf.some(p=>p.k===k2))S.pf=S.pf.filter(p=>p.k!==k2);else S.pf.push({k:k2,lock:true,w:null});save();render()});
+  $('#pg').innerHTML=`<button class="btn q" id="pPrev" ${S.page<=0?'disabled':''}>←</button><span>${T(`Page ${S.page+1} of ${pages}`,`${pages}ページ中${S.page+1}`)}</span><button class="btn q" id="pNext" ${S.page>=pages-1?'disabled':''}>→</button><span>${T('Bonds you add by hand are locked in the portfolio.','手動で追加した債券はポートフォリオにロックされます。')}</span>`;
+  $('#pPrev').onclick=()=>{S.page--;render()};$('#pNext').onclick=()=>{S.page++;render()};
+}
+function detail(){
+  const b=SEL!=null?U.bonds[SEL]:null;if(!b){$('#detail').innerHTML='';return}
+  const loc=b.yld+(b.roll||0),rbe=b.dur>0?loc/b.dur*100:null,fxbe=-loc/(100+loc)*100,ip=S.pf.some(p=>p.k===key(b));
+  $('#detail').innerHTML=`<div style="font-size:15px;color:var(--ink);margin-bottom:4px">${esc(b.name)}</div>`+[
+    [T('ISIN · currency','ISIN・通貨'),`${esc(b.isin||'—')} · ${b.ccy}`],[T('Coupon · maturity','クーポン・満期'),`${b.flt?T('floating','変動'):num(b.cpn,3)+'%'} · ${b.perp?T('perpetual','永久債'):fdt(b.mat)}${b.ncall?' · '+T('next call ','次回コール ')+fdt(b.ncall):''}`],
+    [T('Rating · sector · seniority','格付・セクター・順位'),`${rName(b.rn)} · ${esc(b.sector)} · ${esc(b.rank)}`],[T('Yield · spread · duration','利回り・スプレッド・デュレ'),`${fy(b.yld)} · ${b.spr!=null?num(b.spr,0)+'bp':'—'} · ${f1(b.dur)}`],
+    [T('Against its curve','カーブ対比'),b.rc!=null?`${b.rc>=0?T('cheap by','割安 '):T('rich by','割高 ')}<b>${num(Math.abs(b.rc),0)}bp</b> (${b.z>=0?'+':'−'}${Math.abs(b.z).toFixed(1)}σ, ${b.ccy} ${b.bk})`:T('not enough peers to fit a curve','カーブを当てはめるには銘柄が不足')],
+    [T('12-month return, local','12か月リターン（現地通貨）'),`<b>${fy(loc)}</b> = ${T('yield','利回り')} ${fy(b.yld)} + ${T('roll-down','ロールダウン')} ${fy(b.roll||0)}`],
+    [T(`In ${S.b.base}`,`${S.b.base}建て`),`<b>${fy(erOf(b))}</b> ${b.ccy!==S.b.base?T(`with ${b.ccy} ${pct(fxView(b.ccy),1)} against ${S.b.base}`,`（${b.ccy}の対${S.b.base} ${pct(fxView(b.ccy),1)}）`):''}`],
+    [T('Breakevens over 12 months','12か月の損益分岐'),`${T('yields up','利回り上昇')} <b>${rbe!=null?num(rbe,0)+'bp':'—'}</b>${b.ccy!==S.b.base?` · ${b.ccy} ${T('down','下落')} <b>${num(-fxbe,1)}%</b> ${T('against','対')} ${S.b.base}`:''}`],
+    [T('Size · min piece','発行残高・最低購入額'),`${b.amt!=null?num(b.amt/1e6,0)+'m':'—'} · ${b.piece!=null?num(b.piece,0):'—'} ${b.ccy}`],
+  ].map(([l,v])=>`<div style="display:grid;grid-template-columns:minmax(0,12em) minmax(0,1fr);gap:8px;padding:4px 0;border-bottom:1px solid var(--line)"><span>${l}</span><span style="color:var(--ink)">${v}</span></div>`).join('')+`<div style="margin-top:10px"><button class="btn ${ip?'q':''}" id="dAdd">${ip?T('Remove from portfolio','ポートフォリオから外す'):T('Add to portfolio','ポートフォリオに追加')}</button></div>`;
+  $('#dAdd').onclick=()=>{const k2=key(b);if(ip)S.pf=S.pf.filter(p=>p.k!==k2);else S.pf.push({k:k2,lock:true,w:null});save();render()};
+}
+
+/* ===== builder ===== */
+function builderUI(){
+  const B=S.b,set=(id,v)=>{const el=$(id);if(document.activeElement!==el)el.value=v};
+  $('#bBase').innerHTML=BASES.map(c=>`<option>${c}</option>`).join('');$('#bBase').value=B.base;
+  $('#bSizeL').textContent=T(`Size (${B.base})`,`金額（${B.base}）`);set('#bSize',num(B.size,0));set('#bN',B.n);set('#bDur',B.dur);set('#bTol',B.tol);
+  const ro=SP.slice(0,19).map((r,i)=>`<option value="${i+1}">${r}</option>`).join('');$('#bMinR').innerHTML=ro;$('#bMinR').value=B.minR;
+  set('#bHy',B.hy);set('#bSec',B.sec);set('#bCcyCap',B.ccyCap);set('#bMaxM',B.maxM);set('#bAmt',B.amt);
+  $$('#bObj button').forEach(b=>b.classList.toggle('on',b.dataset.v===B.obj));$$('#bCheap button').forEach(b=>b.classList.toggle('on',+b.dataset.v===B.cheap));$$('#bFx button').forEach(b=>b.classList.toggle('on',b.dataset.v===B.fx));
+  $('#bOne').checked=B.one;$('#bPerp').checked=B.perp;$('#bCall').checked=B.call;
+  const fv=$('#fxViews');fv.hidden=B.fx!=='view';
+  if(B.fx==='view'){const cs=[...new Set(U.bonds.map(b=>b.ccy))].filter(c=>c!==B.base).slice(0,10);fv.innerHTML=cs.map(c=>`<div class="ctl"><span class="lbl">${c} ${T('vs','対')} ${B.base}, %</span><input type="number" step="0.5" data-c="${c}" value="${B.fxv[c]||0}"></div>`).join('')+`<span class="imp">${T('Your expected change of each currency against the base over 12 months.','各通貨の基準通貨に対する12か月の予想変化率。')}</span>`;
+    $$('#fxViews input').forEach(i=>i.onchange=()=>{B.fxv[i.dataset.c]=+i.value||0;save();render()})}
+}
+function scoreOf(b,st){const B=S.b;let s=B.obj==='yld'?b.yld:B.obj==='erd'?erOf(b)/Math.max(0.5,b.dur):erOf(b);
+  if(b.z!=null)s+=B.cheap*Math.max(-3,Math.min(3,b.z));const band=curveBand(st.curve);if(band&&b.wy!=null&&b.wy>=band[0]&&b.wy<=band[1])s+=0.25;if(st.flt==='prefer'&&b.flt)s+=0.3;return s}
+function eligible(b,ticketBase){const B=S.b;if(b.rn==null||b.rn>B.minR)return false;if(!B.perp&&b.perp)return false;if(!B.call&&b.callable)return false;if(b.wy!=null&&b.wy>B.maxM)return false;if(b.yrs!=null&&b.yrs<0.25)return false;
+  if(B.amt&&b.amt!=null&&b.amt<B.amt*1e6)return false;if(b.piece!=null){const t=conv(ticketBase,B.base,b.ccy);if(t!=null&&b.piece>t)return false}return true}
+function build(){
+  const B=S.b,st=stance(),N=Math.max(2,Math.min(80,B.n|0)),ticket=B.size/N,byK=new Map(U.bonds.map(b=>[key(b),b]));
+  const locked=S.pf.filter(p=>p.lock&&byK.has(p.k)).map(p=>byK.get(p.k));
+  const cand=U.bonds.filter(b=>eligible(b,ticket)&&!locked.includes(b)).map(b=>({b,s:scoreOf(b,st)})).sort((x,y)=>y.s-x.s);
+  const sel=[...locked];const cnt=(f)=>{const m={};sel.forEach(b=>{const k=f(b);m[k]=(m[k]||0)+1});return m};
+  const cap=p=>Math.max(1,Math.floor(p/100*N+1e-9));
+  const ok=(b,list)=>{const L=list||sel;if(B.one&&L.some(x=>x.name===b.name))return false;const sc=L.filter(x=>x.sector===b.sector).length,cc=L.filter(x=>x.ccy===b.ccy).length,hy=L.filter(x=>!x.ig).length;
+    if(sc+1>cap(B.sec))return false;if(cc+1>cap(B.ccyCap))return false;if(!b.ig&&hy+1>Math.floor(B.hy/100*N+1e-9))return false;return true};
+  for(const {b} of cand){if(sel.length>=N)break;if(ok(b))sel.push(b)}
+  /* move towards the duration target by swapping */
+  const dur=L=>L.reduce((s,b)=>s+b.dur,0)/L.length;let it=0;
+  while(sel.length&&Math.abs(dur(sel)-B.dur)>B.tol&&it<400){it++;const need=dur(sel)<B.dur?1:-1;
+    const out=sel.filter(b=>!locked.includes(b)&&(need>0?b.dur<B.dur:b.dur>B.dur)).sort((x,y)=>scoreOf(x,st)-scoreOf(y,st))[0];if(!out)break;
+    const rest=sel.filter(b=>b!==out);const inn=cand.find(({b})=>!sel.includes(b)&&(need>0?b.dur>out.dur+0.5:b.dur<out.dur-0.5)&&ok(b,rest));if(!inn)break;sel.splice(sel.indexOf(out),1,inn.b)}
+  S.pf=sel.map(b=>({k:key(b),lock:locked.includes(b),w:null}));save();
+  const short=N-sel.length;$('#buildNote').textContent=short>0?T(`Only ${sel.length} bonds pass every limit; loosen a limit to fill all ${N}.`,`すべての条件を満たすのは${sel.length}銘柄のみ。${N}銘柄にするには条件を緩めてください。`):'';
+  render();
+}
+function pfBonds(){const byK=new Map(U.bonds.map(b=>[key(b),b]));const L=S.pf.map(p=>({p,b:byK.get(p.k)})).filter(x=>x.b);const tot=L.reduce((s,x)=>s+(x.p.w!=null?+x.p.w:100/L.length),0)||1;return L.map(x=>({...x,w:(x.p.w!=null?+x.p.w:100/L.length)/tot}))}
+function portfolio(){
+  const L=pfBonds(),B=S.b;
+  if(!L.length){$('#pfK').innerHTML='';$('#pf').innerHTML=`<tbody><tr><td class="empty">${T('No bonds yet. Build one, or add bonds from the table.','まだ債券がありません。構築するか、表から追加してください。')}</td></tr></tbody>`;$('#checks').innerHTML='';$('#cf').innerHTML='';$('#cfLeg').innerHTML='';$('#mix').innerHTML='';return}
+  const wa=f=>L.reduce((s,x)=>s+x.w*f(x.b),0),yl=wa(b=>b.yld),er=wa(b=>erOf(b)),du=wa(b=>b.dur),rn=wa(b=>b.rn||12),hy=L.filter(x=>!x.b.ig).reduce((s,x)=>s+x.w,0);
+  const k=[[T('Bonds · issuers','銘柄・発行体'),`${L.length} · ${new Set(L.map(x=>x.b.name)).size}`,''],[T('Yield','利回り'),fy(yl),T('average, local currencies','平均（現地通貨）')],[T(`Expected return in ${B.base}`,`期待リターン（${B.base}）`),fy(er),T('12 months, before costs','12か月・コスト控除前')],[T('Duration','デュレーション'),f1(du),T(`target ${B.dur} ± ${B.tol}`,`目標 ${B.dur} ± ${B.tol}`)],[T('Average rating','平均格付'),rName(Math.round(rn)),T(`high yield ${Math.round(hy*100)}%`,`ハイイールド ${Math.round(hy*100)}%`)],[T('Annual coupon income','年間クーポン収入'),money(L.reduce((s,x)=>s+x.w*B.size*(x.b.flt?x.b.yld:x.b.cpn)/100/((x.b.price||100)/100),0),B.base),T('at today’s FX','現在の為替で')]];
+  $('#pfK').innerHTML=k.map(([l,v,s])=>`<div class="kpi"><span class="lbl">${l}</span><span class="v">${v}</span><span class="s">${s}</span></div>`).join('');
+  let h=`<thead><tr><th>${T('Bond','銘柄')}</th><th>${T('Rating','格付')}</th><th>${T('Yield','利回り')}</th><th>Dur</th><th>${T('Exp. return','期待リターン')}</th><th>${T('Weight %','比率 %')}</th><th>${T('Lock','ロック')}</th><th></th></tr></thead><tbody>`;
+  L.forEach(({p,b,w})=>{h+=`<tr data-k="${esc(p.k)}"><td class="is">${esc(b.name)}<span class="nm">${b.ccy} · ${b.perp?T('perp','永久'):fdt(b.mat)} · ${esc(b.isin)}</span></td><td><span class="rb" style="background:${ccol(b.bk)}"></span>${rName(b.rn)}</td><td>${fy(b.yld)}</td><td>${f1(b.dur)}</td><td>${fy(erOf(b))}</td><td><input type="number" step="0.5" min="0" value="${(w*100).toFixed(1)}" data-w="${esc(p.k)}"></td><td><button class="lk ${p.lock?'on':''}" data-l="${esc(p.k)}" title="${T('Locked bonds stay when you rebuild','ロックした債券は再構築でも残ります')}">${p.lock?'●':'○'}</button></td><td><button class="add on" data-r="${esc(p.k)}">−</button></td></tr>`});
+  $('#pf').innerHTML=h+'</tbody>';
+  $$('#pf input[data-w]').forEach(i=>i.onchange=()=>{const p=S.pf.find(x=>x.k===i.dataset.w);if(p){p.w=Math.max(0,+i.value||0);S.pf.forEach(q=>{if(q.w==null)q.w=100/S.pf.length})}save();render()});
+  $$('#pf [data-l]').forEach(bt=>bt.onclick=()=>{const p=S.pf.find(x=>x.k===bt.dataset.l);if(p)p.lock=!p.lock;save();render()});
+  $$('#pf [data-r]').forEach(bt=>bt.onclick=()=>{S.pf=S.pf.filter(x=>x.k!==bt.dataset.r);save();render()});
+  $$('#pf tbody tr').forEach(tr=>tr.onclick=e=>{if(e.target.closest('button,input'))return;const b=U.bonds.find(x=>key(x)===tr.dataset.k);if(b){SEL=b.id;render()}});
+  /* checks */
+  const N=L.length,maxIss=Math.max(...Object.values(L.reduce((m,x)=>(m[x.b.name]=(m[x.b.name]||0)+x.w,m),{}))),secW=L.reduce((m,x)=>(m[x.b.sector]=(m[x.b.sector]||0)+x.w,m),{}),ccyW=L.reduce((m,x)=>(m[x.b.ccy]=(m[x.b.ccy]||0)+x.w,m),{});
+  const ticket=x=>conv(x.w*B.size,B.base,x.b.ccy);const pcFail=L.filter(x=>x.b.piece!=null&&ticket(x)!=null&&x.b.piece>ticket(x));
+  const ck=[[Math.abs(du-B.dur)<=B.tol+1e-9,T(`Duration ${f1(du)} within ${B.dur} ± ${B.tol}`,`デュレーション ${f1(du)}（目標 ${B.dur} ± ${B.tol}）`)],
+    [L.every(x=>x.b.rn!=null&&x.b.rn<=B.minR),T(`All rated ${rName(B.minR)} or better`,`すべて${rName(B.minR)}以上`)],[hy<=B.hy/100+1e-9,T(`High yield ${Math.round(hy*100)}% (limit ${B.hy}%)`,`ハイイールド ${Math.round(hy*100)}%（上限 ${B.hy}%）`)],
+    [Math.max(...Object.values(secW))<=B.sec/100+1e-9,T(`Largest sector ${Math.round(Math.max(...Object.values(secW))*100)}% (limit ${B.sec}%)`,`最大セクター ${Math.round(Math.max(...Object.values(secW))*100)}%（上限 ${B.sec}%）`)],
+    [Math.max(...Object.values(ccyW))<=B.ccyCap/100+1e-9,T(`Largest currency ${Math.round(Math.max(...Object.values(ccyW))*100)}% (limit ${B.ccyCap}%)`,`最大通貨 ${Math.round(Math.max(...Object.values(ccyW))*100)}%（上限 ${B.ccyCap}%）`)],
+    [!B.one||new Set(L.map(x=>x.b.name)).size===N,T(`Largest issuer ${Math.round(maxIss*100)}%`,`最大発行体 ${Math.round(maxIss*100)}%`)],
+    [!pcFail.length,pcFail.length?T(`${pcFail.length} bond${pcFail.length>1?'s':''} below the minimum piece at this size`,`${pcFail.length}銘柄がこの金額では最低購入額に届かない`):T('Every ticket meets the minimum piece','すべて最低購入額を満たす')]];
+  $('#checks').innerHTML=ck.map(([o,t])=>`<div><span class="${o?'ok':'no'}">${o?'✓':'✕'}</span> ${t}</div>`).join('');
+  cashflows(L);mixes(L,secW,ccyW);
+}
+function cashflows(L){
+  const B=S.b,c=C(),now=Date.now(),yrs={};let maxY=0;
+  L.forEach(({b,w})=>{const mvB=w*B.size,mvL=conv(mvB,B.base,b.ccy);if(mvL==null)return;const face=mvL/((b.price||100)/100),cp=face*(b.flt?b.yld:b.cpn)/100,end=b.perp?null:b.mat,ny=end?Math.max(1,Math.ceil((end-now)/(365.25*864e5))):10;
+    for(let y=1;y<=Math.min(ny,30);y++){const o=yrs[y]=yrs[y]||{c:0,p:0};o.c+=conv(cp*(y===ny&&end?Math.min(1,((end-now)/(365.25*864e5))-(y-1)):1),b.ccy,B.base)||0;if(end&&y===ny)o.p+=conv(face,b.ccy,B.base)||0;maxY=Math.max(maxY,y)}});
+  const svg=$('#cf'),w=W(svg),h=230,m={l:56,r:10,t:10,b:26},ys=[...Array(Math.max(1,Math.min(30,maxY))).keys()].map(i=>i+1),vals=ys.map(y=>(yrs[y]||{c:0,p:0}));
+  const mx=Math.max(1,...vals.map(v=>v.c+v.p)),yt=niceTicks(0,mx,4),Y=v=>m.t+(1-v/yt[yt.length-1])*(h-m.t-m.b),bw=(w-m.l-m.r)/ys.length;
+  let g='';yt.forEach(v=>g+=`<line class="grd" x1="${m.l}" x2="${w-m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${m.l-6}" y="${Y(v)+4}" text-anchor="end">${money(v,B.base)}</text>`);
+  ys.forEach((y,i)=>{const v=vals[i],x=m.l+i*bw+bw*.15,ww=bw*.7;g+=`<rect x="${x}" y="${Y(v.p)}" width="${ww}" height="${h-m.b-Y(v.p)}" fill="${c.ink}"/><rect x="${x}" y="${Y(v.p+v.c)}" width="${ww}" height="${Y(v.p)-Y(v.p+v.c)}" fill="${c.steel}" fill-opacity=".7"/><rect class="hb" data-i="${i}" x="${m.l+i*bw}" y="${m.t}" width="${bw}" height="${h-m.t-m.b}" fill="transparent"/>`;
+    if(ys.length<=12||i%Math.ceil(ys.length/12)===0)g+=`<text x="${m.l+i*bw+bw/2}" y="${h-8}" text-anchor="middle">${new Date().getFullYear()+y-1}</text>`});
+  g+=`<line class="ax" x1="${m.l}" x2="${w-m.r}" y1="${h-m.b}" y2="${h-m.b}"/>`;svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.setAttribute('height',h);svg.innerHTML=g;
+  svg.querySelectorAll('.hb').forEach(r=>{r.onmousemove=ev=>{const v=vals[+r.dataset.i];tip(`<div class="m">${new Date().getFullYear()+ys[+r.dataset.i]-1}</div><div>${T('Coupons','クーポン')} <b>${money(v.c,B.base)}</b></div><div>${T('Redemptions','償還')} <b>${money(v.p,B.base)}</b></div>`,ev)};r.onmouseleave=()=>tip(null)});
+  legend($('#cfLeg'),[{name:T('Redemptions','償還'),color:c.ink},{name:T('Coupons','クーポン'),color:c.steel}]);
+}
+function mixes(L,secW,ccyW){const rw=L.reduce((m,x)=>(m[x.b.bk]=(m[x.b.bk]||0)+x.w,m),{});
+  const blk=(title,obj,order)=>{const e=Object.entries(obj).sort((a,b)=>order?order.indexOf(a[0])-order.indexOf(b[0]):b[1]-a[1]).slice(0,8);return `<div><div class="lbl" style="margin-bottom:6px">${title}</div><div class="mx">${e.map(([k,v])=>`<span class="n">${esc(k)}</span><span class="t"><i style="width:${v*100}%"></i></span><span class="v">${Math.round(v*100)}%</span>`).join('')}</div></div>`};
+  $('#mix').innerHTML=blk(T('Currency','通貨'),ccyW)+blk(T('Rating','格付'),rw,['AAA','AA','A','BBB','BB','B','CCC','NR'])+blk(T('Sector','セクター'),secW)}
+
+/* ===== scenarios ===== */
+const DEF_SCEN=()=>[
+  {id:'base',en:'Nothing moves',ja:'変化なし',r:{USD:0,EUR:0,JPY:0,X:0},ig:0,hy:0,fx:0},
+  {id:'dn',en:'Rates down 100bp (JPY 50)',ja:'金利 −100bp（円 −50）',r:{USD:-100,EUR:-100,JPY:-50,X:-100},ig:0,hy:0,fx:0},
+  {id:'up',en:'Rates up 100bp (JPY 50)',ja:'金利 +100bp（円 +50）',r:{USD:100,EUR:100,JPY:50,X:100},ig:0,hy:0,fx:0},
+  {id:'yen',en:'Yen rebounds 10%',ja:'円高 10%',r:{USD:0,EUR:0,JPY:0,X:0},ig:0,hy:0,fx:-10},
+  {id:'c20',en:'Risk-off, 2020-style',ja:'リスクオフ（2020年型）',r:{USD:-100,EUR:-40,JPY:-10,X:-60},ig:200,hy:600,fx:-8},
+  {id:'c08',en:'Credit crunch, 2008-style',ja:'信用収縮（2008年型）',r:{USD:-150,EUR:-100,JPY:-30,X:-100},ig:400,hy:1200,fx:-15},
+  {id:'i22',en:'Inflation shock, 2022-style',ja:'インフレ・ショック（2022年型）',r:{USD:250,EUR:200,JPY:30,X:200},ig:80,hy:250,fx:10},
+];
+function bondScen(b,s){const dr=(s.r[b.ccy]!=null?s.r[b.ccy]:s.r.X)/1e4,ds=(b.ig?s.ig:s.hy)/1e4,rd=b.flt?0.25:b.dur,sd=b.flt?Math.max(0.25,b.yrs||b.dur):b.dur;
+  const loc=(b.yld+(b.roll||0))/100-rd*dr-sd*ds;return b.ccy===S.b.base?loc:(1+loc)*(1+s.fx/100)-1}
+function scenarios(){
+  if(!S.scen)S.scen=DEF_SCEN();const L=pfBonds(),B=S.b;
+  let h=`<thead><tr><th>${T('Scenario','シナリオ')}</th><th>USD bp</th><th>EUR bp</th><th>JPY bp</th><th>${T('Other bp','その他 bp')}</th><th>${T('IG spread bp','IGスプレッド bp')}</th><th>${T('HY spread bp','HYスプレッド bp')}</th><th>${T('Foreign vs base %','外貨の対基準通貨 %')}</th><th>${T('Return','リターン')}</th><th>${T('P&L','損益')}</th><th>${T('Worst bond','最も悪い銘柄')}</th></tr></thead><tbody>`;
+  S.scen.forEach((s,i)=>{let tot=0,worst=null;L.forEach(({b,w})=>{const r=bondScen(b,s);tot+=w*r;if(!worst||r<worst.r)worst={b,r}});
+    const inp=(f,v)=>`<input type="number" step="10" value="${v}" data-s="${i}" data-f="${f}">`;
+    h+=`<tr><td>${esc(JA()?s.ja:s.en)}</td><td>${inp('USD',s.r.USD)}</td><td>${inp('EUR',s.r.EUR)}</td><td>${inp('JPY',s.r.JPY)}</td><td>${inp('X',s.r.X)}</td><td>${inp('ig',s.ig)}</td><td>${inp('hy',s.hy)}</td><td>${inp('fx',s.fx)}</td><td class="r ${L.length?cls(tot):''}">${L.length?pct(tot*100,1):'—'}</td><td class="${L.length?cls(tot):''}">${L.length?money(tot*B.size,B.base):'—'}</td><td>${worst?`${esc(worst.b.name).slice(0,28)} <span class="nm">${pct(worst.r*100,1)}</span>`:'—'}</td></tr>`});
+  $('#sc2').innerHTML=h+'</tbody>';
+  $$('#sc2 input').forEach(i=>i.onchange=()=>{const s=S.scen[+i.dataset.s],f=i.dataset.f,v=+i.value||0;if(['USD','EUR','JPY','X'].includes(f))s.r[f]=v;else s[f]=v;save();render()});
+  $('#scNote').innerHTML=T(`12-month return in ${B.base}: yield and roll-down, minus duration × the rate move, minus spread duration × the spread move (investment grade or high yield by rating; unrated counts as high yield), then the currency move for bonds not in ${B.base}. Convexity is ignored, so big moves overstate losses slightly. <button class="lnk" id="scReset">Reset scenarios</button>`,`${B.base}建ての12か月リターン：利回り＋ロールダウン − デュレーション×金利変化 − スプレッド・デュレーション×スプレッド変化（格付でIG/HY、無格付はHY扱い）、${B.base}以外の債券は為替変化を反映。コンベクシティは無視しているため、大きな変化では損失をやや大きめに見積もります。<button class="lnk" id="scReset">シナリオを初期化</button>`);
+  $('#scReset').onclick=()=>{S.scen=DEF_SCEN();save();render()};
+}
+function method(){
+  $('#method').innerHTML=T(`<b>Method.</b> Your file never leaves this browser; with “Keep on this computer” it is stored in this browser only. Ratings: composite if given, else the middle of S&P, Fitch and Moody’s. Yields missing are solved from price and coupon; missing durations are estimated from coupon, yield and maturity (floaters 0.25). Cheap/rich: within each currency and rating band with at least 15 bonds, yield is fitted against years to maturity (or to call for perpetuals) as a + b·ln(1+years) + c·years; the gap is shown in bp and in standard deviations of that band. Roll-down: the fitted curve one year shorter, times duration, capped at ±1.5%. Expected return in the base currency = (1 + yield + roll-down) × (1 + the currency’s move) − 1, with the move set to zero, to the forward (the short-rate gap from Keel’s 3-month rates), or to your views; no hedging. The macro stance follows simple rules on six-month changes in the OECD leading indicator, CPI, the US 2-year yield, VIX and high yield against Treasuries; it is a starting point, not a forecast, and every part can be overridden. The builder ranks eligible bonds and fills the portfolio in order under your limits, then swaps bonds to meet the duration target. Not advice.`,
+    `<b>算出方法。</b>ファイルはこのブラウザの外に出ません。「このパソコンに保存」を選ぶと、このブラウザ内にのみ保存されます。格付：総合格付があればそれを、なければS&P・フィッチ・ムーディーズの中央値。利回りがない場合は価格とクーポンから計算、デュレーションがない場合はクーポン・利回り・満期から推定（変動利付は0.25）。割安/割高：15銘柄以上ある通貨×格付帯ごとに、利回りを残存年数（永久債はコールまで）に a + b·ln(1+年数) + c·年数 で当てはめ、その差をbpと標準偏差で表示。ロールダウン：1年短い点のカーブ値の差×デュレーション（±1.5%で上限）。基準通貨建ての期待リターン = (1 + 利回り + ロールダウン) × (1 + 為替変化) − 1。為替は変化なし、フォワード通り（Keelの3か月金利差）、または自分の見通し。ヘッジなし。マクロの方針はOECD先行指数・CPI・米2年債利回り・VIX・ハイイールド対国債の6か月変化に基づく単純なルールで、予測ではなく出発点です。すべて手動で変更できます。ビルダーは条件を満たす債券を順位順に組み入れ、デュレーション目標に合わせて入れ替えます。助言ではありません。`);
+}
+window.redraw=render;
+
+/* ===== loading the universe ===== */
+function readFile(file){
+  const name=file.name;$('#impNote').textContent=T('Reading…','読み込み中…');
+  const done=rows=>{if(!rows||rows.length<2){$('#impNote').textContent=T('No rows found.','行が見つかりません。');return}
+    let hi=0;for(let i=0;i<Math.min(15,rows.length);i++){const nn=rows[i].filter(v=>v!=null&&String(v).trim()!=='').length;if(nn>rows[hi].filter(v=>v!=null&&String(v).trim()!=='').length)hi=i}
+    const headers=rows[hi].map(v=>String(v==null?'':v).trim());RAW={name,headers,rows:rows.slice(hi+1).filter(r=>r.some(v=>v!=null&&String(v).trim()!==''))};
+    let saved=null;try{saved=JSON.parse(localStorage.getItem('atlas-map:'+headers.map(norm).join('|'))||'null')}catch(e){}
+    showMap(saved||guessMap(headers))};
+  const fr=new FileReader();
+  if(/\.csv$/i.test(name)){fr.onload=()=>done(parseCSV(String(fr.result)));fr.readAsText(file)}
+  else{if(!window.XLSX){$('#impNote').textContent=T('The Excel reader did not load here. Save the sheet as CSV and load that instead.','Excel読み込み機能を利用できません。CSVで保存して読み込んでください。');return}
+    fr.onload=()=>{try{const wb=XLSX.read(new Uint8Array(fr.result),{type:'array',cellDates:true});let best=null;wb.SheetNames.forEach(n=>{const r=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:null});if(!best||r.length>best.length)best=r});done(best)}catch(e){$('#impNote').textContent=T('Could not read the file: ','ファイルを読み込めません：')+e.message}};fr.readAsArrayBuffer(file)}
+}
+function parseCSV(t){const out=[];let row=[],f='',q=false;for(let i=0;i<t.length;i++){const ch=t[i];if(q){if(ch==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=ch}else if(ch==='"')q=true;else if(ch===','){row.push(f);f=''}else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&t[i+1]==='\n')i++;row.push(f);out.push(row);row=[];f=''}else f+=ch}if(f||row.length){row.push(f);out.push(row)}return out}
+function showMap(map){
+  $('#mapWrap').hidden=false;const H=RAW.headers,sample=j=>{for(const r of RAW.rows.slice(0,50)){const v=r[j];if(v!=null&&String(v).trim()!=='')return v instanceof Date?fdt(Date.UTC(v.getFullYear(),v.getMonth(),v.getDate())):String(v).slice(0,26)}return''};
+  $('#map').innerHTML=FIELDS.map(f=>`<label class="${f.req?'req':''}"><span>${JA()?f.ja:f.en}</span><select data-k="${f.k}"><option value="">—</option>${H.map((h,j)=>`<option value="${j}" ${map[f.k]===j?'selected':''}>${esc(h||'('+(j+1)+')')}</option>`).join('')}</select><i data-s="${f.k}">${map[f.k]!=null?esc(sample(map[f.k])):''}</i></label>`).join('');
+  $$('#map select').forEach(s=>s.onchange=()=>{const j=s.value;$(`#map i[data-s="${s.dataset.k}"]`).textContent=j===''?'':sample(+j)});
+  const found=FIELDS.filter(f=>map[f.k]!=null).length;$('#mapNote').textContent=T(`${num(RAW.rows.length,0)} rows in “${RAW.name}”. Matched ${found} of ${FIELDS.length} columns.`,`「${RAW.name}」${num(RAW.rows.length,0)}行。${FIELDS.length}項目中${found}項目を対応付けました。`);$('#impNote').textContent='';
+}
+$('#applyMap').onclick=()=>{const map={};$$('#map select').forEach(s=>{if(s.value!=='')map[s.dataset.k]=+s.value});
+  const miss=FIELDS.filter(f=>f.req&&map[f.k]==null&&!(f.k==='yld'&&map.price!=null&&map.cpn!=null));if(miss.length){$('#mapNote').textContent=T('Still needed: ','未設定：')+miss.map(f=>JA()?f.ja:f.en).join(', ');return}
+  try{localStorage.setItem('atlas-map:'+RAW.headers.map(norm).join('|'),JSON.stringify(map))}catch(e){}
+  const {bonds,st}=buildBonds(RAW.rows,map,Date.now());setUniverse({bonds,name:RAW.name,from:'file',at:Date.now()},st);$('#mapWrap').hidden=true;RAW=null};
+function setUniverse(u,st){U=u;analyseUniverse();SEL=null;S.page=0;const keys=new Set(U.bonds.map(key));S.pf=S.pf.filter(p=>keys.has(p.k));
+  if(st)$('#impNote').innerHTML=T(`Loaded <b>${num(u.bonds.length,0)}</b> bonds from ${num(st.rows,0)} rows. Skipped: ${st.noCcy} without a currency, ${st.noYld} without a usable yield or matured. Yields solved from price: ${st.yFromPx}. Durations estimated: ${st.durEst}. Unrated: ${st.noRating}. Perpetuals: ${st.perp}. Curves fitted: ${Object.keys(FITS).length} currency × rating bands.`,`${num(st.rows,0)}行から<b>${num(u.bonds.length,0)}</b>銘柄を読み込み。除外：通貨なし${st.noCcy}、有効な利回りなし・償還済み${st.noYld}。価格から利回り計算：${st.yFromPx}。デュレーション推定：${st.durEst}。無格付：${st.noRating}。永久債：${st.perp}。カーブ推定：${Object.keys(FITS).length}の通貨×格付帯。`);
+  if(S.keep&&u.from==='file')idbPut(u);save();render()}
+/* IndexedDB: optional, per browser */
+function idb(){return new Promise((ok,no)=>{try{const r=indexedDB.open('atlas',1);r.onupgradeneeded=()=>r.result.createObjectStore('u');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)}catch(e){no(e)}})}
+async function idbPut(u){try{const d=await idb();d.transaction('u','readwrite').objectStore('u').put(u,'last')}catch(e){}}
+async function idbGet(){try{const d=await idb();return await new Promise(ok=>{const r=d.transaction('u').objectStore('u').get('last');r.onsuccess=()=>ok(r.result);r.onerror=()=>ok(null)})}catch(e){return null}}
+async function idbDel(){try{const d=await idb();d.transaction('u','readwrite').objectStore('u').delete('last')}catch(e){}}
+
+/* ===== example universe (made-up bonds) ===== */
+function example(){
+  let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646},nrm=()=>Math.sqrt(-2*Math.log(rnd()+1e-12))*Math.cos(6.2832*rnd());
+  const pick=a=>{let r=rnd(),s=0;for(const[v,w]of a){s+=w;if(r<=s)return v}return a[a.length-1][0]};
+  const gov={USD:[4.74,5.09],JPY:[1.90,2.94],EUR:[2.3,2.9],GBP:[4.1,4.7],AUD:[4.2,4.8],CAD:[3.0,3.5]};
+  const gy=(c,x)=>{const[a,b]=gov[c];return a+(b-a)*Math.min(1,Math.log(1+x)/Math.log(11))+(x>10?0.15*(x-10)/20:0)};
+  const SPR={AAA:15,AA:40,A:75,BBB:125,BB:250,B:420,CCC:800},SECS=['Financials','Utilities','Industrials','Energy','Technology','Communications','Consumer','Health Care','Real Estate','Government & Agency','Supranational'];
+  const RNK=['Senior Unsecured','Senior Secured','Subordinated'],PIECE={USD:[200000,1000],EUR:[100000,1000],JPY:[100000000,1000000],GBP:[100000,1000],AUD:[10000,1000],CAD:[1000,1000]};
+  const bonds=[],now=Date.now(),iss=[];for(let i=0;i<620;i++)iss.push({n:`Example Issuer ${String(i+1).padStart(3,'0')}`,sec:SECS[Math.floor(rnd()*SECS.length)],r:Math.max(1,Math.min(18,Math.round(8+nrm()*3.6)))});
+  for(let i=0;i<4200;i++){const I=iss[Math.floor(rnd()*iss.length)],ccy=pick([['USD',.45],['EUR',.2],['JPY',.13],['AUD',.08],['GBP',.08],['CAD',.06]]),rn=Math.max(1,Math.min(19,I.r+Math.round(nrm()*.6))),bk=bucketOf(rn);
+    const hyb=rn>=11,perp=rnd()<(I.sec==='Financials'?.06:.01),flt=!perp&&rnd()<.05,x=perp?0:Math.max(.3,Math.min(30,Math.exp(Math.log(hyb?5:6)+nrm()*.7))),callable=perp||(hyb?rnd()<.6:rnd()<.12);
+    const spr=SPR[bk]*(1+.35*Math.log(1+x)/Math.log(11))*Math.exp(nrm()*.18)+(callable?20:0)+(perp?90:0),wy=perp?5+rnd()*3:x,y=gy(ccy,wy)+spr/100;
+    const cpn=flt?0:Math.max(0,Math.round((y+nrm()*.6)*8)/8),mat=perp?null:now+x*365.25*864e5,f=freqOf(ccy),price=flt?100+nrm()*.4:priceFromYield(cpn,y,wy,f),dur=flt?0.25:modDur(cpn,y,wy,f);
+    const nc=callable?(perp?now+wy*365.25*864e5:now+Math.max(.2,x-1-rnd()*2)*365.25*864e5):null,retail=rnd()<.15,pc=PIECE[ccy];
+    bonds.push({id:bonds.length,isin:'EX'+String(100000000+i*7919%899999999).padStart(10,'0'),name:I.n,ccy,cpn,mat,perp,ncall:nc,yrs:perp?null:x,wy,price:Math.round(price*1000)/1000,yld:Math.round(y*1000)/1000,spr:Math.round(spr),dur,flt,callable,
+      rn,bk,ig:rn<=10,sector:I.sec,country:pick([['US',.4],['JP',.12],['FR',.08],['DE',.08],['GB',.08],['AU',.06],['CA',.06],['NL',.06],['CH',.06]]),rank:I.sec==='Financials'&&rnd()<.25?(perp?'AT1':'Tier 2'):RNK[rnd()<.85?0:rnd()<.5?1:2],piece:retail?pc[1]:pc[0],amt:Math.round(Math.exp(Math.log(700)+nrm()*.6))*1e6})}
+  return bonds;
+}
+
+/* ===== macro data ===== */
+async function loadMacro(fresh){
+  setStatus('busy');const st=new Date();st.setFullYear(st.getFullYear()-3);
+  const [a,b,c]=await Promise.all([keel('api_macro',{areas:'US,JP',start:st.toISOString().slice(0,7)},{fresh}),keel('api_history',{symbols:'UST2Y,UST10Y,JGB2Y,JGB10Y,^VIX,HYG,IEF',interval:'M',start:st.toISOString().slice(0,10)},{fresh}),keel('api_fxcarry',{years:5},{fresh})]);
+  if(a.ok&&a.data&&a.data.series&&b.ok&&b.data&&b.data.series){const s=a.data.series;MAC={cli:{US:s.US?s.US.cli:[],JP:s.JP?s.JP.cli:[]},cpi:{US:s.US?s.US.cpi_yoy:[]},h:b.data.series};MAC_LIVE=true;setStatus('live')}
+  else{MAC=null;MAC_LIVE=false;const r=a.ok?b:a;setStatus(r.code==='no_mcp'?'sample':'err',r.code||'tool_error',r.message);
+    const bn=$('#banner');if(bn&&!bn.hidden){const sp=bn.querySelector('span');if(sp)sp.innerHTML=`<b>${T('Macro figures are a dated snapshot.','マクロ数値はスナップショットです。')}</b> ${esc(keelMsg(r.code,r.message))} ${T('Your universe and the builder work without Keel.','ユニバースとビルダーはKeelなしでも動作します。')}`}}
+  if(c.ok&&c.data&&c.data.rate){RATES={};for(const[k,v]of Object.entries(c.data.rate)){const x=(v||[]).filter(z=>z!=null);if(x.length)RATES[k]=x[x.length-1]}FXU={};for(const[k,v]of Object.entries(c.data.spot||{})){const x=(v||[]).filter(z=>z!=null);if(x.length)FXU[k]=x[x.length-1]}FXU.USD=1;for(const k in SAMPLE.fx)if(FXU[k]==null)FXU[k]=SAMPLE.fx[k]}
+  render();
+}
+
+/* ===== wiring ===== */
+$('#how').innerHTML=howHtml();
+$('#pick').onclick=()=>$('#file').click();$('#file').onchange=e=>{const f=e.target.files[0];if(f)readFile(f);e.target.value=''};
+const dz=$('#drop');['dragenter','dragover'].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.add('over')}));['dragleave','drop'].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.remove('over')}));dz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)readFile(f)});
+$('#demo').onclick=()=>{setUniverse({bonds:example(),name:T('Example universe','サンプル・ユニバース'),from:'example',at:Date.now()},null);$('#impNote').innerHTML=T('<b>Made-up bonds</b> with realistic yields, to show how Atlas works. Load your own file to replace them.','Atlasの動作を示すための<b>架空の債券</b>です。ご自身のファイルを読み込むと置き換わります。')};
+$('#keep').onchange=e=>{S.keep=e.target.checked;save();if(S.keep&&U&&U.from==='file')idbPut(U);if(!S.keep)idbDel()};
+$$('#yaxSeg button').forEach(b=>b.onclick=()=>{S.yax=b.dataset.v;save();render()});
+const fset=(id,k,f=v=>v)=>$(id).onchange=e=>{S.f[k]=f(e.target.type==='checkbox'?e.target.checked:e.target.value);S.page=0;save();render()};
+fset('#fMinR','minR',v=>+v);fset('#fMaxR','maxR',v=>+v);fset('#fMat0','mat0');fset('#fMat1','mat1');fset('#fSec','sec');fset('#fRank','rank');fset('#fCt','ct');fset('#fCall','call');fset('#fPiece','piece');fset('#fCheap','cheap');
+let QT;$('#fQ').oninput=e=>{clearTimeout(QT);QT=setTimeout(()=>{S.f.q=e.target.value;S.page=0;save();render()},250)};
+$('#fReset').onclick=()=>{S.f={ccy:[],minR:1,maxR:22,mat0:'',mat1:'',sec:'',rank:'',ct:'',call:'',piece:'',q:'',cheap:false};S.page=0;save();render()};
+const bset=(id,k,f=v=>+v)=>$(id).onchange=e=>{S.b[k]=f(e.target.type==='checkbox'?e.target.checked:e.target.value);save();render()};
+bset('#bBase','base',v=>v);bset('#bSize','size',v=>+String(v).replace(/[^\d.]/g,'')||S.b.size);bset('#bN','n');bset('#bDur','dur');bset('#bTol','tol');bset('#bMinR','minR');bset('#bHy','hy');bset('#bSec','sec');bset('#bCcyCap','ccyCap');bset('#bMaxM','maxM');bset('#bAmt','amt');bset('#bOne','one',v=>!!v);bset('#bPerp','perp',v=>!!v);bset('#bCall','call',v=>!!v);
+$$('#bObj button').forEach(b=>b.onclick=()=>{S.b.obj=b.dataset.v;save();render()});$$('#bCheap button').forEach(b=>b.onclick=()=>{S.b.cheap=+b.dataset.v;save();render()});$$('#bFx button').forEach(b=>b.onclick=()=>{S.b.fx=b.dataset.v;save();render()});
+$('#build').onclick=()=>{if(U)build()};$('#equal').onclick=()=>{S.pf.forEach(p=>p.w=null);save();render()};$('#clearPf').onclick=()=>{S.pf=S.pf.filter(p=>p.lock);save();render()};
+$('#applyStance').onclick=()=>{Object.assign(S.b,stanceDefaults(stance()));save();render();$('#bset').scrollIntoView({behavior:'smooth',block:'start'})};
+$('#autoStance').onclick=()=>{S.stOv={};save();render()};
+$('#export').onclick=async()=>{const L=pfBonds();if(!L.length)return;const B=S.b;
+  const rows=[['ISIN','Issuer','Currency','Coupon','Maturity','Rating','Sector','Seniority','Yield %','Spread bp','Duration','Cheap/rich bp','Exp. return % ('+B.base+')','Weight %','Amount ('+B.base+')','Amount (bond ccy)','Min piece']].concat(L.map(({b,w})=>[b.isin,b.name,b.ccy,b.flt?'float':b.cpn,b.perp?'perpetual':fdt(b.mat),rName(b.rn),b.sector,b.rank,+b.yld.toFixed(3),b.spr,+b.dur.toFixed(2),b.rc!=null?Math.round(b.rc):'',+erOf(b).toFixed(2),+(w*100).toFixed(2),Math.round(w*B.size),conv(w*B.size,B.base,b.ccy)!=null?Math.round(conv(w*B.size,B.base,b.ccy)):'',b.piece??'']));
+  let data,fn;if(window.XLSX){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Portfolio');data=XLSX.write(wb,{bookType:'xlsx',type:'array'});fn='atlas-portfolio.xlsx'}else{data=rows.map(r=>r.map(v=>/[",\n]/.test(String(v))?'"'+String(v).replace(/"/g,'""')+'"':v).join(',')).join('\n');fn='atlas-portfolio.csv'}
+  let dl=null;try{dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null}catch(e){}
+  if(dl){try{await dl.save({filename:fn,data})}catch(e){$('#buildNote').textContent=e&&e.code==='declined'?'':T('Export is not available here.','ここでは出力できません。')}return}
+  const blob=new Blob([data],{type:fn.endsWith('xlsx')?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)};
+$$('#langSeg button').forEach(b=>b.onclick=()=>{setLang(b.dataset.l);$('#how').innerHTML=howHtml();restatus();render()});
+$('#refresh').onclick=()=>loadMacro(true);
+RATES=SAMPLE.rates;FXU=SAMPLE.fx;
+setLang(LANG);render();
+(async()=>{if(S.keep){const u=await idbGet();if(u&&u.bonds){U=u;analyseUniverse();$('#impNote').innerHTML=T(`Opened <b>${esc(u.name)}</b> saved in this browser on ${fdate(fdt(u.at))}.`,`このブラウザに${fdate(fdt(u.at))}に保存した<b>${esc(u.name)}</b>を開きました。`);render()}}})();
+loadMacro(false);
+</script>
